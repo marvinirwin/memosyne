@@ -1,5 +1,9 @@
 <template>
   <div id="wrapper">
+      <div id="navbar">
+        User information
+      </div>
+
     <img id="logo" src="~@/assets/logo.png" alt="electron-vue">
     <main>
       <div class="left-side">

@@ -1,3 +1,6 @@
+import {Observable, BehaviorSubject, Subject, ReplaySubject} from 'rxjs';
+import {debounceTime} from 'rxjs/operators'
+
 class gen_Edge {
     constructor({id, createdTimestamp, userId}) {
         this.id = !isNaN(parseInt(id + '', 10)) ? parseInt(id + '', 10) : undefined;
@@ -41,29 +44,85 @@ class gen_NodeRevision {
 export class Node extends gen_Node {
     constructor(o) {
         super(o);
-        this.nodeRevisions = o.nodeRevisions.map(o => new gen_NodeRevision(o));
         this.parents = [];
         this.children = [];
+
+        let latestR = undefined;
+        if (o.nodeRevisions && o.nodeRevisions.length) {
+            latestR = o.nodeRevisions[o.nodeRevisions.length - 1];
+        }
+
+        this.currentText$ = new BehaviorSubject(latestR.text || '');
+        this.currentClassification$ = new BehaviorSubject(latestR.classification || '');
+        this.nodeRevisions$ = new BehaviorSubject([]);
+        this.latestRevision$ = new BehaviorSubject(undefined);
+        this.revisionPublisher$ = new BehaviorSubject(undefined);
+
+        this.nodeRevisions$.subscribe(r => {
+            if (!r || !r.length) return;
+            this.latestRevision$.next(r[r.length - 1])
+        });
+
+        this.currentText$.pipe(debounceTime(1000)).subscribe(() => this.checkAndMaybeCreateRevision());
+        this.currentClassification$.pipe(debounceTime(1000)).subscribe(() => this.checkAndMaybeCreateRevision());
+
+        // Fill our noderevisions with nodeRevisions which we know have already been persisted
+        this.nodeRevisions$.next(o.nodeRevisions.map(o => new NodeRevision(o, true)));
     }
+
+    checkAndMaybeCreateRevision() {
+        const latestRevision = this.latestRevision$.getValue();
+        if (!latestRevision) {
+            return;
+        }
+        const currentClassification = this.currentClassification$.getValue() || '';
+        const currentText = this.currentText$.getValue() || '';
+        if (currentClassification !== latestRevision.classification ||
+            currentText !== latestRevision.text) {
+            this.submitNewRevision();
+        }
+    }
+
+    submitNewRevision() {
+        const newRevision = new NodeRevision({
+            text: this.currentText$.getValue(),
+            classification: this.currentClassification$.getValue(),
+            nodeId: this.id,
+            visible: this.visible,
+        }, false);
+        this.revisionPublisher$.next(newRevision);
+        this.nodeRevisions$.next(this.nodeRevisions$.getValue().concat(newRevision));
+    }
+
+    // Helper functions for getting and setting & classification
+    get text() {
+        return this.currentText$.getValue();
+    }
+
+    set text(v) {
+        this.currentText$.next(v);
+    }
+
     get classification() {
-        return this.nodeRevisions.length ?
-            this.nodeRevisions[0].classification :
-            ''
+        return this.currentClassification$.getValue();
     }
 
-    get latestText() {
-        return this.nodeRevisions.length ?
-            this.nodeRevisions[0].text :
-            ''
+    set classification(v) {
+        this.currentClassification$.next(v);
     }
 
+}
+
+export class NodeRevision extends gen_NodeRevision {
     /**
-     * Returns all nodes except this one
-     * @param {Node} child
-     * @return {*[]}
+     *
+     * @param o
+     * @param {boolean} persisted
      */
-    siblings(child) {
-        return this.children.filter(n => n !== child);
+    constructor(o, persisted) {
+        super(o);
+
+        this.persisted = persisted;
     }
 }
 
@@ -73,12 +132,16 @@ export class Edge extends gen_Edge {
         this.edgeRevisions = o.edgeRevisions.map(o => new gen_EdgeRevision(o));
         this.nodeStart = undefined;
         this.nodeEnd = undefined;
+
+        this.revisionPublisher$ = new BehaviorSubject(undefined);
     }
+
     get n1() {
         return this.edgeRevisions.length ?
             this.edgeRevisions[0].n1 :
             NaN
     }
+
     get n2() {
         return this.edgeRevisions.length ?
             this.edgeRevisions[0].n2 :
@@ -102,10 +165,16 @@ export class Net {
     /**
      * @param {Node[]} nodes
      * @param {Edge[]} edges
+     * @param {NetPersistor} db
      */
-    constructor(nodes, edges) {
-        this.nodes = nodes;
+    constructor(nodes, edges, db) {
+        this.nodes = [];
         this.edges = [];
+        this.db = db;
+        for (let i = 0; i < this.nodes.length; i++) {
+            const node = this.nodes[i];
+            this.addNode(this.nodes, this.edges, node);
+        }
         for (let i = 0; i < edges.length; i++) {
             const edge = edges[i];
             this.addEdge(this.nodes, this.edges, edge);
@@ -138,6 +207,12 @@ export class Net {
             }
         }
         oldNodes.push(newNode);
+
+        newNode.revisionPublisher$.subscribe(v => {
+            if (v) {
+                this.db.queNode.push(v);
+            }
+        })
     }
 
     /**
@@ -166,6 +241,12 @@ export class Net {
             }
         }
         oldEdges.push(newEdge);
+
+        newEdge.revisionPublisher$.subscribe(v => {
+            if (v) {
+                this.db.queEdge.push(v);
+            }
+        })
     }
 
     /**
@@ -190,28 +271,44 @@ export class Net {
     }
 }
 
+export class NetPersistor {
+    /**
+     *
+     * @param {(Node) => void} persistNode
+     * @param {(Edge) => void} persistEdge
+     * @param {(NodeRevision) => void} persistNodeRevision
+     * @param {(EdgeRevision) => void} persistEdgeRevision
+     */
+    constructor(persistNode, persistEdge, persistNodeRevision, persistEdgeRevision) {
+        this.persistNode = persistNode;
+        this.persistEdge = persistEdge;
+        this.persistNodeRevision = persistNodeRevision;
+        this.persistEdgeRevision = persistEdgeRevision;
 
+        this.queNode = [];
+        this.queEdge = [];
+        this.queNodeRevision = [];
+        this.queEdgeRevision = [];
 
+        setTimeout(() => this.attendQue(), 10000);
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    async attendQue() {
+        for (let i = 0; i < this.queNode.length; i++) {
+            const queNodeElement = this.queNode[i];
+            await this.persistNode(queNodeElement);
+        }
+        for (let i = 0; i < this.queEdge.length; i++) {
+            const queEdgeElement = this.queEdge[i];
+            await this.persistEdge(queEdgeElement);
+        }
+        for (let i = 0; i < this.queNodeRevision.length; i++) {
+            const queNodeRevisionElement = this.queNodeRevision[i];
+            await this.persistNodeRevision(queNodeRevisionElement);
+        }
+        for (let i = 0; i < this.queEdgeRevision.length; i++) {
+            const queEdgeRevisionElement = this.queEdgeRevision[i];
+            await this.persistEdgeRevision(queEdgeRevisionElement);
+        }
+    }
+}

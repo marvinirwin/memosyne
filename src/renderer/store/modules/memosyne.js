@@ -1,10 +1,12 @@
 import axios from 'axios';
-import {Node, Edge, Net} from '../../net';
+import {Node, Edge, Net, NetPersistor} from '../../net';
 
 const DebugStore = require('debug')('mem:store');
 
 const UrlUsers = 'api/Users';
 const UrlDefaultUser = 'api/DefaultUsers';
+const UrlNodes = 'api/Nodes';
+const UrlEdges = 'api/Edges';
 const USER_ID = 'USER_ID';
 
 /**
@@ -55,8 +57,8 @@ const state = {
     email: '',
     userId: '',
     accessToken: '',
-    displayRootNodes: [],
     net: undefined,
+    netPersistor: undefined,
     selectedNodes: [],
     rootNodeFilter: (n) => n.classification === 'book',
     depthMarkNode: undefined
@@ -65,14 +67,14 @@ const state = {
 const mutations = {
     setNetFromResult(state, {result}) {
         if (!result || !result.data || !result.data.length) {
-            state.net = new Net([], edges);
+            state.net = new Net([], []);
             return;
         }
         const user = result.data[0];
 
         const nodes = user.nodes.map(o => new Node(o));
         const edges = user.edges.map(o => new Edge(o));
-        state.net = new Net(nodes, edges);
+        state.net = new Net(nodes, edges, state.netPersistor);
     },
     /**
      *
@@ -82,6 +84,9 @@ const mutations = {
      */
     nodeSelected(state, {node, event}) {
         state.selectedNodes = [node];
+    },
+    setNetPersistor(state, {netPersistor}) {
+        state.netPersistor = netPersistor;
     }
 };
 
@@ -116,12 +121,27 @@ const actions = {
         }
     },
     async login({state}, {email, password}) {
-        debugger;
         await axios.post(resolveApiUrl(UrlUsers, 'login'), {email, password})
     },
     async logout({}) {
         await axios.post(resolveApiUrl(UrlUsers, 'logout'));
     },
+    async newNode({state}, {node}) {
+        return await axios.post(resolveApiUrl(UrlUsers, state.userId + '', 'Nodes'), node);
+    },
+    async newEdge({state}, {edge}) {
+        return await axios.post(resolveApiUrl(UrlUsers, state.userId + '', 'Edges'), edge);
+    },
+    async persistNodeRevision({state}, {nodeRevision}) {
+        return nodeRevision.id ?
+            await axios.put(resolveApiUrl(UrlUsers, state.userId+ '', 'NodeRevisions', nodeRevision.id + ''), nodeRevision) :
+            await axios.post(resolveApiUrl(UrlUsers, state.userId+ '', 'NodeRevisions'), nodeRevision)
+    },
+    async persistEdgeRevision({state}, {edgeRevision}) {
+        return edgeRevision.id ?
+            await axios.put(resolveApiUrl(UrlUsers, state.userId+ '', 'NodeRevisions', edgeRevision.id + ''), edgeRevision) :
+            await axios.post(resolveApiUrl(UrlUsers, state.userId+ '', 'NodeRevisions'), edgeRevision)
+    }
 };
 
 const getters = {
@@ -140,6 +160,7 @@ const getters = {
         return net ?
             net.nodes.filter(state.rootNodeFilter) :
             [];
+
     },
     selectedNodes(state) {
         return state.selectedNodes;

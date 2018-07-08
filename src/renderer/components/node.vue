@@ -1,23 +1,29 @@
 <template>
-    <div class="node" :class="node.class">
+    <div class="node"
+         @keypress="handleKeyPress($event)"
+    >
 
         <div class="nucleus"
+             :class="{editing: editing, persisted: latestRevision && latestRevision.persisted}"
+             tabindex="99"
              ref="nucleus"
-             @click="nodeSelected({node, event: $event})"
-        >
+             @click="nodeSelected({node, event: $event})">
 
             <textarea
                     v-show="editing"
                     ref="textarea"
                     class="node-textarea"
-                    v-model="text"
+                    v-model="node.text"
             ></textarea>
+
 
             <div v-show="!editing"
                  class="node-markdown"
                  ref="markdown"
                  v-html="markdown"
             ></div>
+
+            <input placeholder="classification" v-model="node.classification">
 
             <div class="node-attrs"
                  ref="attrs"
@@ -27,7 +33,8 @@
 
         <div class="node-children">
             <node
-                    v-for="child in node.children"
+                    v-for="(child, index) in node.children"
+                    :ref="'child' + index"
                     :key="child.id"
                     :node="child"
                     :siblings="node.children.filter(n => n !== child)"
@@ -38,19 +45,17 @@
 
 <script>
     import {debounce} from 'lodash';
-    import { mapMutations, mapGetters } from 'vuex';
+    import {mapMutations, mapGetters} from 'vuex';
     import Node from './node.vue';
 
     export default {
         name: "node",
         mounted() {
-            this.debouncedPersistTextChange = debounce(() => {
-                // this.node.persistTextChange(this._text)
-            });
-            this.text = this.node.latestText;
             this.$nextTick(this.fitTextArea);
             this.$nextTick(this.renderMarkdown);
-
+            this.node.latestRevision$.subscribe(v => {
+                this.latestRevision = v;
+            });
         },
         props: {
             node: {
@@ -63,27 +68,16 @@
             }
         },
         data() {
-            const vm = this;
             return {
-                _text: this.node.latestText,
-                get text() {
-                    return this._text;
-                },
-                set text(v) {
-                    this._text = v;
-                    vm.$nextTick(vm.fitTextArea);
-                    vm.debouncedPersistTextChange();
-                },
                 markdown: '',
+                latestRevision: undefined,
             }
         },
         methods: {
             ...mapMutations(['nodeSelected']),
             renderMarkdown() {
-                this.markdown = document.converter.makeHtml(this.text);
-            },
-            debouncedPersistTextChange() {
-
+                this.markdown = document.converter.makeHtml(this.node.text);
+                this.$nextTick(() => this.fitTextArea());
             },
             fitTextArea() {
                 const tArea = this.$refs.textarea;
@@ -93,24 +87,41 @@
                 const hLimit = window.innerHeight * 0.75;
 
                 if (!this.editing) {
-/*                    nucleus.style.height = tArea.scrollHeight < hLimit ? (tArea.scrollHeight) : (hLimit + "px");
-                    nucleus.style.minHeight = '16px';*/
                     tArea.style.height = markdown.scrollHeight + "px";
                     tArea.style.minHeight = '16px';
                 }
 
             },
+            /**
+             *
+             * @param {KeyboardEvent} event
+             */
+            handleKeyPress(event) {
+                let el;
+                switch (event.key) {
+                    case "ArrowLeft":
+                        el = this.$parent.$el;
+                        el.children[0].children[0].click();
+                        break;
+                    // This means I want to focus my first child?
+                    case "ArrowRight":
+                        el = this.$refs['child' + 0];
+                        el.children[0].children[0].click();
+                        break;
+                }
+            },
         },
         computed: {
             ...mapGetters(['selectedNodes']),
             editing() {
-                // debugger;
                 return this.selectedNodes.indexOf(this.node) !== -1;
             }
         },
         watch: {
             editing() {
-                this.$nextTick(this.fitTextArea);
+                if (!this.editing) {
+                    this.renderMarkdown();
+                }
             }
         }
     }

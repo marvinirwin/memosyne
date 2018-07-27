@@ -5,70 +5,73 @@
 </template>
 
 <script>
-    import showdown from 'showdown';
-    import { mapMutations, mapActions } from 'vuex';
-    import {NetPersistor} from "./net";
+    require('materialize-css/dist/css/materialize.css');
 
-    const converter = new showdown.Converter();
 
     export default {
         name: 'memosyne',
         methods: {
-            ...mapMutations(['setNetPersistor']),
-            ...mapActions(['newNode', 'newEdge', 'persistNodeRevision', 'persistEdgeRevision']),
         },
         mounted() {
-            document.converter = converter;
-            this.setNetPersistor({
-                netPersistor: new NetPersistor(
-                    (node) => this.newNode({node}).then(() => node.persisted = true),
-                    (edge) => this.newEdge({edge}).then(() => edge.persited = true),
-                    (nodeRevision) => this.persistNodeRevision({nodeRevision}).then(() => nodeRevision.persited = true),
-                    (edgeRevision) => this.persistEdgeRevision({edgeRevision}).then(() => edgeRevision.persited = true),
-                )
-            });
         }
     }
 </script>
 
 <style>
     /* CSS */
-    body {
+    html {
+        outline: none;
     }
-
     .nucleus {
         border: solid black;
     }
 
     .node {
         display: flex;
-        margin-top: 2px;
-        margin-bottom: 2px;
     }
+
     .node > .nucleus {
         height: fit-content;
         display: flex;
         flex-flow: column nowrap;
         align-self: center;
-        min-width: 30vw;
-        max-width: 30vw;
+        min-width: 49vw;
+        max-width: 49vw;
     }
+
     .node > .nucleus.persisted {
         border-color: green;
     }
+
     .node > .nucleus:not(.persisted) {
         border-color: red;
     }
-    .node > .nucleus > textarea,
-    .node > .nucleus > .node-markdown {
+
+    .node-textarea {
+        font-size: 1rem;
+        min-height: 20px;
+    }
+    .node-markdown {
         flex: 1;
     }
+
 
     .node-children {
         display: flex;
         flex-flow: column nowrap;
     }
 
+    .selected {
+        color: red;
+    }
+
+
+
+/*    .selected {
+        -webkit-box-shadow: 0 0.05em 0.2em 0 rgba(0, 0, 0, 0.2);
+        box-shadow: 0 0.05em 0.2em 0 rgba(0, 0, 0, 0.2);
+        background: #7fa0eb;
+    }*/
 
     @media print {
         *,
@@ -132,7 +135,7 @@
 
     pre,
     code {
-        font-family: Menlo, Monaco, "Courier New", monospace;
+/*        font-family: Menlo, Monaco, "Courier New", monospace;*/
     }
 
     pre {
@@ -257,7 +260,7 @@
         font-family: 'Open Sans Condensed', sans-serif;
         font-weight: 300;
         margin: 0 auto;
-        max-width: 48rem;
+/*        max-width: 48rem;*/
         line-height: 1.45;
         padding: .25rem;
     }
@@ -289,4 +292,9 @@
     code {
         background-color: #fafafa;
     }
-</style>
+
+    /**
+     * Creator: Simon R.
+     */
+
+    </style>

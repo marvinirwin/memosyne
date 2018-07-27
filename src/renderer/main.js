@@ -5,7 +5,11 @@ import App from './App'
 import router from './router'
 import store from './store'
 
-import {debounce} from 'lodash';
+import {debounce} from 'lodash'
+
+import VueRx from 'vue-rx'
+
+Vue.use(VueRx);
 
 if (!process.env.IS_WEB) Vue.use(require('vue-electron'))
 Vue.http = Vue.prototype.$http = axios

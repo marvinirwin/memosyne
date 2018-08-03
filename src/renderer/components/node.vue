@@ -6,31 +6,33 @@
 
         <div class="nucleus card-panel"
              :class="{
-             selected: selected,
-             'z-depth-4': selected,
-             persisted: latestRevision && latestRevision.persisted
+             groupSelected: groupSelected,
+             editSelected: editSelected,
+             preEditSelected: preEditSelected,
+             'z-depth-4': groupSelected,
+             persisted: latestRevision && latestRevision.persisted,
              }"
              tabindex="99"
              ref="nucleus"
-             @click="setSelectedNodes({nodes: [node]})">
-
+             @click="handleClick($event)"
+        >
+<!--             @click="setSelectedNodes({nodes: [node]})"-->
             <textarea
-                    v-show="selected"
                     ref="textarea"
                     class="node-textarea"
                     v-model="node.text"
-                    @keydown.stop="()=>{}"
+                    @keydown.stop="handleTextboxPress($event)"
             ></textarea>
 
-            <div v-show="!selected"
+            <div
                  class="node-markdown"
                  ref="markdown"
                  v-html="markdown"
-                 @click="setSelectedNodes({nodes: [node]})"
-            ></div>
-
+            >
+<!--                @click="setSelectedNodes({nodes: [node]})"-->
+            </div>
+            <!--                    @click="setSelectedNodes({nodes: [node]})"-->
             <input
-                    @click="setSelectedNodes({nodes: [node]})"
                     class="classification"
                     placeholder="classification"
                     @keydown.stop="()=>{}"
@@ -42,10 +44,9 @@
                 </div>
             </div>
             <div class="node-attrs"
-                 ref="attrs" tabindex="0"
-            >
-
-                 <div>
+                 ref="attrs"
+                 tabindex="0">
+                <div>
                     <span>Predecessor length: {{node.predecessorNodes.length}}</span>
                     <span>Successor length: {{node.successorNodes.length}}</span>
                 </div>
@@ -86,17 +87,30 @@
             delete this.$store.state.memosyne.nodeElementMap[this.$refs.root];
         },
         mounted() {
-            this.node.vueInstances.push(this);
-            this.$nextTick(this.fitTextArea);
-            this.$nextTick(this.renderMarkdown);
-            this.node.latestRevision$.subscribe(v => {
+            /**
+             * @type Node
+             */
+            const node = this.node;
+            node.latestRevision$.subscribe(v => {
                 this.latestRevision = v;
             });
-            this.$store.state.memosyne.selectedNodes$.subscribe(s => {
-                this.selected = s.indexOf(this.node) !== -1;
+            // TODO Let's see if the subscription hook has access to the props
+            // It doesn't look like it can, but there must be a better way
+            this.node.groupSelected$.subscribe((v) => {
+                this.groupSelected = v;
             });
-            this.$refs.textarea.focus();
+            this.node.editSelected$.subscribe((v) => {
+                this.editSelected = v;
+            });
+            this.node.preEditSelected$.subscribe(v => {
+                this.preEditSelected = v;
+            });
+
+            node.vueInstances.push(this);
+            this.$nextTick(this.fitTextArea);
+            this.$nextTick(this.renderMarkdown);
             this.$store.state.memosyne.nodeElementMap[this.$refs.root] = this;
+            this.showMarkdown();
         },
         props: {
             node: {
@@ -112,12 +126,55 @@
             return {
                 markdown: '',
                 latestRevision: undefined,
-                selected: false
+                /*                editSelected: false,*/
+                groupSelected: false,
+                editSelected: false,
+                preEditSelected: false,
             }
         },
         methods: {
             ...mapMutations(['setSelectedNodes']),
-            ...mapActions(['handleHotkeyPress']),
+            ...mapActions(['handleHotkeyPress', 'handleNewNode']),
+            showTextArea() {
+                this.$refs.textarea.style.display = 'block';
+                this.$refs.markdown.style.display = 'none';
+            },
+            showMarkdown() {
+                this.$refs.textarea.style.display = 'none';
+                this.$refs.markdown.style.display = 'block';
+            },
+            /**
+             *
+             * @param event {KeyboardEvent}
+             */
+            handleTextboxPress(event) {
+                if (this.preEditSelected) {
+                    this.node.net.removePreEditingNode(this.node);
+                    this.handleHotkeyPress({vueInstance: this, node: this.node, event: event});
+                    event.preventDefault();
+                }
+
+/*                switch(event.key) {
+                    case "ArrowLeft":
+                    case "ArrowRight":
+                    case "ArrowUp":
+                    case "ArrowDown":
+                        if (this.preEditSelected) {
+                        }
+                        break;
+                    case "Escape":
+                        this.handleHotkeyPress({vueInstance: this, node: this.node, event: event});
+                        break;
+                    case "Enter":
+                        if (event.ctrlKey) {
+                            const parents = this.node.net.groupSelectedNodes$.getValue();
+                            this.handleNewNode({parents});
+                        }
+                }*/
+            },
+            handleClick(event) {
+                this.node.net.setEditingNode(this.node);
+            },
             renderMarkdown() {
                 this.markdown = document.converter.makeHtml(this.node.text);
                 this.$nextTick(() => this.fitTextArea());
@@ -129,7 +186,7 @@
                 const nucleus = this.$refs.nucleus;
                 const hLimit = window.innerHeight * 0.75;
 
-                if (!this.selected) {
+                if (!this.editSelected$) {
                     tArea.style.height = markdown.scrollHeight + "px";
                     tArea.style.minHeight = '16px';
                     /*                    tArea.style.height = markdown.scrollHeight + "px"; */
@@ -143,11 +200,6 @@
              *
              * @param {KeyboardEvent} event
              */
-            handleKeyPress(event) {
-                if (event.key === "Escape") {
-                    this.handleHotkeyPress({vueInstance: this, node: this.node, event: event});
-                }
-            },
             focusTextarea() {
                 this.$refs.textarea.focus();
             },
@@ -155,14 +207,26 @@
                 this.handleHotkeyPress({vueInstance: this, node: this.node, event});
             },
         },
-        computed: {},
+        computed: {
+        },
         watch: {
-            selected() {
+/*            selected() {
                 if (!this.selected) {
                     this.renderMarkdown();
                 }
+            }*/
+        },
+        subscriptions() {
+            /**
+             * @type {Node}
+             */
+            const node = this.node;
+            return {
+                groupSelected$: node.groupSelected$,
+                editSelected$: node.editSelected$,
+                preEditSelected: node.preEditSelected$,
             }
-        }
+        },
     }
 </script>
 

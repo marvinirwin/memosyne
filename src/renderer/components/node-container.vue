@@ -3,7 +3,7 @@
     <div id="node-container"
          class="node-children"
          tabindex="255">
-<!-- @keydown.stop.prevent="handleKeyPress($event)"-->
+<!-- @keydown.stop.prevent="handleTextboxPress($event)"-->
         <div
                 v-for="rootNode in displayRootNodes"
                 :key="rootNode.id">
@@ -44,7 +44,7 @@
              *
              * @param {KeyboardEvent} e
              */
-            handleKeyPress(e) {
+            handleTextboxPress(e) {
                 this.handleHotkeyPress({vueInstance: this, node: undefined, event: e});
             }
         },

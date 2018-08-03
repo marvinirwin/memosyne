@@ -27,7 +27,7 @@
         methods: {
             ...mapActions(['handleNewNode', 'handleDeleteNodes']),
             btnNewNodeClicked() {
-                const parents = this.$store.state.memosyne.selectedNodes$.getValue();
+                const parents = this.$store.state.memosyne.net.groupSelectedNodes$.getValue();
                 this.handleNewNode({parents});
             },
             btnDeleteNodesClicked() {

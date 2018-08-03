@@ -1,5 +1,10 @@
 <template>
-    <div>
+    <div style="position: relative">
+        <div style="position: fixed; background-color: lightblue; " v-if="$store.state.memosyne.net">
+            <div  v-for="message in $store.state.memosyne.net.messages">
+                {{message}}
+            </div>
+        </div>
         <navbar></navbar>
         <node-container v-if="$store.state.memosyne.net"></node-container>
     </div>
@@ -20,6 +25,12 @@
         methods: {
             ...mapMutations(['setNetPersistor']),
             ...mapActions(['newNode', 'newEdge', 'persistNodeRevision', 'persistEdgeRevision', 'checkLoginGetNodes']),
+        },
+        computed: {
+            messages() {
+                const net = this.$store.memosyne.net;
+                return net && net.messages;
+            }
         },
         mounted () {
             document.converter = converter;

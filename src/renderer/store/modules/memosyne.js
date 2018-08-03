@@ -91,9 +91,8 @@ function scrollToCenter(element) {
  * @param newInstance {Vue}
  */
 function setFocusedInstance(state, oldInstance, newInstance) {
-    state.selectedNodes$.next([newInstance.node]);
-    newInstance.$refs.textarea.focus();
-    newInstance.$refs.textarea.click();
+    const net = state.net;
+    // state.selectedNodes$.next([newInstance.node]);
     /**
      * This is the part of the node we focus
      * @type {HTMLElement}
@@ -103,6 +102,11 @@ function setFocusedInstance(state, oldInstance, newInstance) {
 
     event.stopPropagation();
     event.preventDefault();
+
+    newInstance.showTextArea();
+    newInstance.$refs.textarea.focus();
+    net.setPreEditingNode(newInstance.node);
+
 }
 
 const state = {
@@ -286,6 +290,7 @@ const actions = {
      */
     async handleHotkeyPress({state, dispatch}, {vueInstance, node, event}) {
         DebugStore('Handling hotkey press ', event.key);
+        const net = state.net;
         let siblingRefs = [];
         let newInstance;
         let siblingInstances = [];
@@ -308,7 +313,7 @@ const actions = {
                 DebugStore('Selecting parent node');
                 let parent = vueInstance.$parent;
                 let parentNode = parent.node;
-                state.selectedNodes$.next([parentNode]);
+/*                state.selectedNodes$.next([parentNode]);*/
                 setFocusedInstance(state, vueInstance, parent);
                 // parent.focusTextarea();
                 break;

@@ -44,9 +44,22 @@ export class gen_NodeRevision {
 export class Node extends gen_Node {
     constructor(o) {
         super(o);
+        /**
+         * @type {Node[]}
+         */
         this.predecessorNodes = [];
+        /**
+         * @type {Node[]}
+         */
         this.successorNodes = [];
+        /**
+         * @type {Vue[]}
+         */
         this.vueInstances = [];
+
+        this.groupSelected$ = new BehaviorSubject(false);
+        this.preEditSelected$ = new BehaviorSubject(false);
+        this.editSelected$ = new BehaviorSubject(false);
 
         let latestR = undefined;
         if (o.nodeRevisions && o.nodeRevisions.length) {
@@ -284,8 +297,26 @@ export class Net {
          */
         this.db = db;
 
+        /**
+         * @type {String[]}
+         */
+        this.messages = [];
+
         this.recomputeDisplaySignal$ = new Subject();
         this.recomputeRelationSignal$ = new Subject();
+
+        /**
+         * @type {BehaviorSubject<Node>}
+         */
+        this.groupSelectedNodes$ = new BehaviorSubject([]);
+        /**
+         * @type {BehaviorSubject<Node>}
+         */
+        this.predEditSelectedNodes$ = new BehaviorSubject([]);
+        /**
+         * @type {BehaviorSubject<Node>}
+         */
+        this.editSelectedNodes$ = new BehaviorSubject([]);
 
         this.addNodesAndEdges(nodes, edges);
 
@@ -297,6 +328,7 @@ export class Net {
      * @param newEdges {Edge[]}
      */
     addNodesAndEdges(newNodes, newEdges) {
+        this.messages.push('Adding nodes and edges');
         const oldNodes = this.nodes;
         const oldEdges = this.edges;
         for (let i = 0; i < newNodes.length; i++) {
@@ -324,8 +356,53 @@ export class Net {
             const oldNode = oldNodes[i];
             oldNode.checkEdgeRevisions();
         }
+
         this.recomputeRelationSignal$.next();
         this.recomputeDisplaySignal$.next();
+    }
+
+    /**
+     * This is what happens when you click on a node,
+     * erases everyone and just selects one
+     * @param n {Node}
+     */
+    setEditingNode(n) {
+        this.messages.push('Setting editing node');
+        this.groupSelectedNodes$.getValue().map(n => n.groupSelected$.next(false));
+        this.editSelectedNodes$.getValue().map(n => n.editSelected$.next(false));
+        this.predEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
+
+        n.groupSelected$.next(true);
+        n.editSelected$.next(true);
+        n.preEditSelected$.next(false);
+
+        this.groupSelectedNodes$.next([n]);
+        this.editSelectedNodes$.next([n]);
+        this.predEditSelectedNodes$.next([]);
+    }
+
+    /**
+     * This is what happens when you switch with an arrow key.
+     * Clears the net's preEditSelected and sets it to just the target
+     * Sets the node groupSelected to true, editSelected to false and preEditSelected to true
+     * @param n {Node}
+     */
+    setPreEditingNode(n) {
+        this.messages.push('Setting preEditingNode');
+        this.predEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
+
+        n.groupSelected$.next(true);
+        n.editSelected$.next(false);
+        n.preEditSelected$.next(true);
+
+        this.predEditSelectedNodes$.next([n]);
+    }
+
+    removePreEditingNode(n) {
+        this.messages.push('Removing pre-editing node');
+        this.predEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
+        n.preEditSelected$.next(false);
+        this.predEditSelectedNodes$.next([n]);
     }
 
     /**

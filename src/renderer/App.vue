@@ -19,7 +19,7 @@
 
 <style>
     /* CSS */
-    html {
+    *, *:focus {
         outline: none;
     }
     .nucleus {
@@ -63,6 +63,10 @@
 
     .selected {
         color: red;
+    }
+
+    textarea:focus {
+        background-color: red;
     }
 
 

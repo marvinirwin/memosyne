@@ -35,7 +35,6 @@
             <input
                     class="classification"
                     placeholder="classification"
-                    @keydown.stop="()=>{}"
                     v-model="node.classification">
 
             <div class="selectable">
@@ -149,10 +148,25 @@
              */
             handleTextboxPress(event) {
                 if (this.preEditSelected) {
-                    this.node.net.removePreEditingNode(this.node);
-                    this.handleHotkeyPress({vueInstance: this, node: this.node, event: event});
-                    event.preventDefault();
+                    if (event.key === "ArrowUp" ||
+                        event.key === "ArrowDown" ||
+                        event.key === "ArrowLeft" ||
+                        event.key === "ArrowRight") {
+                        this.handleHotkeyPress({vueInstance: this, node: this.node, event: event});
+                    }else {
+                        this.node.net.removePreEditingNode(this.node);
+                    }
                 }
+                if (event.key === "Escape") {
+                    this.node.net.removePreEditingNode(this.node);
+                    this.node.net.setPreEditingNode(this.node);
+                    this.$refs.nucleus.focus();
+                }
+
+                if (event.ctrlKey && event.key === "Enter") {
+                    this.node.net.createNode(this).catch(e => console.log(e));
+                }
+
 
 /*                switch(event.key) {
                     case "ArrowLeft":

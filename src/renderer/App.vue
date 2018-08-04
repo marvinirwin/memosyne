@@ -55,14 +55,19 @@
         flex: 1;
     }
 
-
     .node-children {
         display: flex;
         flex-flow: column nowrap;
     }
 
-    .selected {
-        color: red;
+    .groupSelected {
+        background-color: lightblue;
+    }
+    .preEditSelected {
+        color: darkblue;
+    }
+    .editSelected {
+        color: darkred;
     }
 
     textarea:focus {

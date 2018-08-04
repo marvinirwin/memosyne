@@ -1,5 +1,17 @@
-import {Observable, BehaviorSubject, Subject, ReplaySubject} from 'rxjs';
+import {BehaviorSubject, Subject} from 'rxjs';
 import {debounceTime} from 'rxjs/operators'
+import axios from 'axios';
+
+const USER_ID = 'USER_ID';
+
+const api = 'api';
+const UrlUsers = 'Users';
+const UrlDefaultUser = 'DefaultUsers';
+const UrlNodes = 'Nodes';
+/*const UrlVNodes = 'VNodes';*/
+const UrlEdges = 'Edges';
+const UrlNodeRevisions = 'NodeRevisions';
+const UrlEdgeRevisions = 'EdgeRevisions';
 
 export class gen_Edge {
     constructor({id, createdTimestamp, userId}) {
@@ -79,6 +91,9 @@ export class Node extends gen_Node {
          * @type {Net}
          */
         this.net = undefined;
+
+
+        this.persisted = false;
 
         // If we get any edges check if any of them belong to us and put them into successorEdges
 
@@ -221,7 +236,7 @@ export class NodeRevision extends gen_NodeRevision {
     constructor(o, persisted) {
         super(o);
 
-        this.persisted = persisted;
+/*        this.persisted = persisted;*/
     }
 }
 
@@ -264,16 +279,70 @@ export class Edge extends gen_Edge {
     }
 }
 
-export class Cell {
-    /**
-     *
-     * @param {Node} node
-     * @param {Number} unitsAbove
-     */
-    constructor(node, unitsAbove) {
-        this.node = node;
-        this.unitsAbove = unitsAbove;
+export class EdgeRevision extends gen_EdgeRevision {
+    constructor(o) {
+        super(o);
+        this.persisted = false;
     }
+}
+
+/**
+ *
+ * @param n {number}
+ * @return {Promise<void>}
+ */
+export function sleep(n) {
+    return new Promise((resolve) => {
+        setTimeout(n, resolve);
+    });
+}
+
+function resolveApiUrl(...args) {
+    return [process.env.API_HOST].concat(args).join('/');
+}
+
+/**
+ *
+ * @param element {HTMLElement}
+ */
+/*function scrollToCenter(element) {
+    const elementRect = element.getBoundingClientRect();
+    const absoluteElementTop = elementRect.top + window.pageYOffset;
+    const absoluteElementLeft = elementRect.left + window.pageXOffset;
+    const middleTop = absoluteElementTop - (window.innerHeight / 2);
+    const middleLeft = absoluteElementLeft - (window.innerWidth / 2);
+    window.scrollTo(middleLeft, middleTop);
+    /!*    window.scrollTo({
+                top: middleTop,
+                left: middleLeft,
+            behavior: 'smooth'
+            }
+        )*!/
+}*/
+
+/**
+ *
+ * @param state {Object}
+ * @param oldInstance {Vue}
+ * @param newInstance {Vue}
+ */
+function setFocusedInstance(state, oldInstance, newInstance) {
+    const net = state.net;
+    // state.selectedNodes$.next([newInstance.node]);
+    /**
+     * This is the part of the node we focus
+     * @type {HTMLElement}
+     */
+    const el = newInstance.$refs.nucleus;
+    $('html,body').animate({scrollTop: $(el).offset().top - ($(window).height() - $(el).outerHeight(true)) / 2}, 200);
+
+    event.stopPropagation();
+    event.preventDefault();
+
+    newInstance.showTextArea();
+    newInstance.$refs.textarea.focus();
+    net.removePreEditingNode(newInstance.node);
+    net.setPreEditingNode(newInstance.node);
 }
 
 export class Net {
@@ -320,7 +389,7 @@ export class Net {
 
         this.addNodesAndEdges(nodes, edges);
 
-        this.viewportManager = new ViewportManager();
+/*        this.viewportManager = new ViewportManager();*/
     }
 
     /**
@@ -351,7 +420,6 @@ export class Net {
             });
             oldEdges.push(newEdge);
         }
-
         for (let i = 0; i < oldNodes.length; i++) {
             const oldNode = oldNodes[i];
             oldNode.checkEdgeRevisions();
@@ -379,6 +447,7 @@ export class Net {
         this.groupSelectedNodes$.next([n]);
         this.editSelectedNodes$.next([n]);
         this.predEditSelectedNodes$.next([]);
+        n.vueInstances.map(v => v.showTextArea());
     }
 
     /**
@@ -398,6 +467,9 @@ export class Net {
         this.predEditSelectedNodes$.next([n]);
     }
 
+    /**
+     * @param n {Node}
+     */
     removePreEditingNode(n) {
         this.messages.push('Removing pre-editing node');
         this.predEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
@@ -406,34 +478,307 @@ export class Net {
     }
 
     /**
+     * @param parentInstance {Vue}
+     */
+    async createNode(parentInstance) {
+        const groupSelectedNodes = this.groupSelectedNodes$.getValue();
+
+        if (!parentInstance) {
+            const newNode = await Net.persistNode(null, groupSelectedNodes);
+            this.addNodesAndEdges([newNode], []);
+            return;
+        }
+
+        /**
+         * @type {Node}
+         */
+        const parentNode = parentInstance.node;
+        const parentVueInstanceIndex = parentNode.vueInstances.findIndex(v => v.node.id === parentInstance.node.id);
+        const newNode = await Net.newNode(null);
+        this.addNodesAndEdges([newNode], []);
+        // Create the new node, push it into the net, wait for the DOM to update the vue instances and then find the vue instance we're focusing
+        await sleep(1);
+        const newParentInstance = parentNode.vueInstances[parentVueInstanceIndex];
+        const childInstance = newParentInstance.$children.find(instance => instance.node.id === newNode);
+        focusInstance(childInstance);
+        // Maybe I should reset the focuses and add the new, focused instance to preEditSelected$
+    }
+
+/*    /!**
      * Takes a function which decides if a node is a root node.
      * @param isRoot
-     */
+     *!/
     constructColumns(isRoot) {
         const roots = this.nodes.filter(isRoot);
         const columns = [roots];
     }
 
-    /**
+    /!**
      *
      * @param {Cell[]} previousColumn
-     */
+     *!/
     constructColumn(previousColumn) {
         for (let i = 0; i < previousColumn.length; i++) {
             const node = previousColumn[i];
             const leavingEdges = this.edges.filter(e => e.n2 === node.id);
 
         }
+    }*/
+
+    /**
+     *
+     * @param node
+     * @return {Promise<Node>}
+     */
+    static async newNode(node) {
+        const returned = await axios.post(resolveApiUrl(api, UrlNodes), node);
+        const result = await axios.get(resolveApiUrl(api, UrlNodes, returned.data.id + ''));
+        return new Node(result.data);
+    }
+    /**
+     * @param {Edge} edge
+     * @return {Promise<Edge>}
+     */
+    static async newEdge(edge) {
+        const returned = await axios.post(resolveApiUrl(api, UrlEdges), edge);
+        const result = await axios.get(resolveApiUrl(api, UrlEdges, returned.data.id + ''));
+        return new Edge(result.data);
+    }
+    /**
+     *
+     * @param {gen_NodeRevision} nodeRevision
+     * @return {Promise<NodeRevision>}
+     */
+    static async persistNodeRevision(nodeRevision) {
+        const result = nodeRevision.id ?
+            await axios.put(resolveApiUrl(api, UrlNodeRevisions, nodeRevision.id + ''), nodeRevision) :
+            await axios.post(resolveApiUrl(api, UrlNodeRevisions), nodeRevision);
+        const newNodeRevision = await axios.get(
+            resolveApiUrl(api,
+                UrlUsers,
+                localStorage.getItem(USER_ID),
+                'Nodes',
+                nodeRevision.nodeId + '',
+                'NodeRevisions',
+                result.data.id + '',
+            ));
+
+        const revision = new NodeRevision(newNodeRevision.data);
+        revision.persisted = true;
+        return revision;
+    }
+    /**
+     *
+     * @param {EdgeRevision} edgeRevision
+     * @return {Promise<EdgeRevision>}
+     */
+    static async persistEdgeRevision( edgeRevision) {
+        const result = edgeRevision.id ?
+            await axios.put(resolveApiUrl(api, UrlEdgeRevisions, edgeRevision.id + '')) :
+            await axios.post(resolveApiUrl(api, UrlEdgeRevisions), edgeRevision);
+        const revisitionResult = await axios.get(
+            resolveApiUrl(api, UrlUsers,
+                localStorage.getItem(USER_ID),
+                UrlEdges,
+                edgeRevision.edgeId + '',
+                UrlEdgeRevisions,
+                result.data.id + ''));
+
+
+        return new EdgeRevision(revisitionResult.data);
+    }
+    /**
+     *
+     * @param {Vue} vueInstance
+     * @param {Node} node
+     * @param {KeyboardEvent} event
+     */
+    async handleHotkeyPress(vueInstance, node, event) {
+        this.messages.push("Handling hotkey press " + event.key);
+/*        const net = state.net;
+        let siblingRefs = [];*/
+        let newInstance;
+        let siblingInstances = [];
+        let myIndex = -1;
+/*        const selectedNodes = this.groupSelectedNodes$.getValue();*/
+        switch (event.key) {
+            case "Enter":
+                this.messages.push('Enter pressed, createNode');
+                // If there aren't any nodes selected create a root node
+                await this.createNode();
+                break;
+            case "Escape":
+                // If you pressed escape then de-select all nodes;
+                this.messages.push('Escape pressed, unselecting all');
+                this.groupSelectedNodes$.next([]);
+                this.editSelectedNodes$.next([]);
+                this.setPreEditingNode(node);
+                break;
+            case "ArrowLeft":
+                // In the case of a left arrow we want to go to
+                // that vue instance's immediate parent's node
+                this.messages.push('Arrow left pressed, selecting parent');
+                let parent = vueInstance.$parent;
+/*                let parentNode = parent.node;*/
+                /*                state.selectedNodes$.next([parentNode]);*/
+                setFocusedInstance(state, vueInstance, parent);
+                // parent.focusTextarea();
+                break;
+            case "ArrowRight":
+                this.messages.push('Arrow left pressed, selecting child');
+                let children = vueInstance.$children;
+                let childrenLength = children.length;
+                if (!childrenLength) {
+                    return;
+                }
+                let i = childrenLength % 2 ?
+                    (childrenLength / 2) + 0.5 - 1 :
+                    childrenLength / 2;
+
+                setFocusedInstance(state, vueInstance, children[i]);
+                break;
+            case "ArrowUp":
+                this.messages.push('Arrow up pressed, selecting sibling');
+                siblingInstances = vueInstance.$parent.$children;
+                // If we have no siblings than we can't go up
+                for (let i = 0; i < siblingInstances.length; i++) {
+                    const siblingInstance = siblingInstances[i];
+                    if (siblingInstance === vueInstance) {
+                        myIndex = i;
+                    }
+                }
+                // Once we have
+                if (myIndex === -1) {
+                    alert("Could not find self in parent's successorNodes handling ArrowDown");
+                    return;
+                }
+                // myIndex = siblingRefs.findIndex((r) => .isSameNode(r));
+                if (myIndex === 0) {
+                    myIndex = siblingInstances.length - 1;
+                } else {
+                    myIndex--;
+                }
+                newInstance = siblingInstances[myIndex];
+                setFocusedInstance(state, vueInstance, newInstance);
+                break;
+            case "ArrowDown":
+                this.messages.push('Arrow down pressed, selecting sibling');
+                siblingInstances = vueInstance.$parent.$children;
+                // Try to find the index of myself so I can go one down
+                for (let i = 0; i < siblingInstances.length; i++) {
+                    const siblingInstance = siblingInstances[i];
+                    if (siblingInstance === vueInstance) {
+                        myIndex = i;
+                    }
+                }
+                // Once we have
+                if (myIndex === -1) {
+                    alert("Could not find self in parent's successorNodes handling ArrowDown");
+                    return;
+                }
+                // myIndex = siblingRefs.findIndex((r) => .isSameNode(r));
+                if (myIndex === (siblingInstances.length - 1)) {
+                    myIndex = 0;
+                } else {
+                    myIndex++;
+                }
+                newInstance = siblingInstances[myIndex];
+                setFocusedInstance(state, vueInstance, newInstance);
+                break;
+        }
+    }
+    /**
+     *
+     * @param nodes {Node[]}
+     * @return {Promise<void>}
+     */
+    static async handleDeleteNodes(nodes) {
+        for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+            /**
+             * @type {NodeRevision}
+             */
+            const o = node.latestRevision$.getValue();
+            o.visible = false;
+            await Net.persistNodeRevision(o);
+        }
+    }
+    /**
+     *
+     * @param state
+     * @param dispatch
+     * @param parents {Node[]}
+     * @return {Promise<void>}
+     */
+/*    async handleNewNode(parents) {
+        const o = await this.createNodeAndEdges(text, classification, parents);
+        state.net.addNodesAndEdges([], [o.node]);
+        o.edges.map((e) => state.net.addNodesAndEdges(state.net.nodes, state.net.edges, e));
+    }*/
+    /**
+     *
+     * @param {String} text
+     * @param {String} classification
+     * @param {Node[]} parents
+     * @return {Promise<{node: Node, edges: Edge[]}>}
+     */
+    static async createNodeAndEdges(text, classification, parents) {
+        const newNode = await Net.newNode();
+        const newNodeRevision = await Net.persistNodeRevision(
+            new gen_NodeRevision({
+                text,
+                classification,
+                nodeId: newNode.id
+            }));
+
+        newNode.nodeRevisions$.next(newNode.nodeRevisions$.getValue().concat(newNodeRevision));
+        const newEdges = [];
+        if (parents) {
+            for (let i = 0; i < parents.length; i++) {
+                const parent = parents[i];
+                const edge = await Net.newEdge({});
+                const revision = await Net.persistEdgeRevision(
+                {
+                    edgeId: edge.id,
+                        n1: parent.id,
+                        n2: newNode.id,
+                        classification: 'parent',
+                });
+                edge.edgeRevisions$.next(edge.edgeRevisions$.getValue().concat(revision));
+                newEdges.push(edge);
+            }
+        }
+        return {node: newNode, edges: newEdges};
     }
 }
 
+/**
+ * Persists a node, both in localStorage and to an api
+ * @callback NodePersistor
+ * @param {Node} node
+ */
+/**
+ * Persists an edge, both in localStorage and to an api
+ * @callback EdgePersistor
+ * @param {Edge} edge
+ */
+/**
+ * Persists an edgeRevision, both in localStorage and to an api
+ * @callback EdgeRevisionPersistor
+ * @param {EdgeRevision} edgeRevision
+ */
+/**
+ * Persists a nodeRevision, both in localStorage and to an api
+ * @callback NodeRevisionPersistor
+ * @param {NodeRevision} nodeRevision
+ */
+
 export class NetPersistor {
     /**
-     * TODO figure out how to do function types in jshint
-     * @param {(Node) void} persistNode
-     * @param {(Edge) => void} persistEdge
-     * @param {(NodeRevision) => void} persistNodeRevision
-     * @param {(EdgeRevision) => void} persistEdgeRevision
+     * @param {NodePersistor} persistNode
+     * @param {EdgePersistor} persistEdge
+     * @param {NodeRevisionPersistor} persistNodeRevision
+     * @param {EdgeRevisionPersistor} persistEdgeRevision
      * @param localstorageKey {String}
      */
     constructor(persistNode, persistEdge, persistNodeRevision, persistEdgeRevision, localstorageKey) {
@@ -552,6 +897,7 @@ export const VERTICAL_LINEAR = 'VERTICAL_LINEAR';
 export const VERTICAL_TREE = 'VERTICAL_TREE';
 export const HORIZONTAL_TREE = 'HORIZONTAL_TREE';
 
+/*
 export class ViewportManager {
     constructor() {
         this.viewMode$ = new BehaviorSubject([]);
@@ -583,12 +929,12 @@ export class ViewportManager {
         });
     }
 
-    /**
+    /!**
      *
      * @param {function(node): bool} rootNodeFilter
      * @param {Node[]} nodes
      * @param {Node} centeredNode
-     */
+     *!/
     setVisibleNodes(rootNodeFilter, nodes, centeredNode) {
         const rootNodes = nodes.filter(rootNodeFilter);
         if (!centeredNode) {
@@ -607,7 +953,7 @@ export class ViewportManager {
         };
     }
 
-    /**
+    /!**
      *
      * @param {function(node)} setFunc
      * @param {function(node)}resetFunc
@@ -615,7 +961,7 @@ export class ViewportManager {
      * @param {Node[]}toBeReset
      * @param {Node} nodeStart
      * @param {Number} steps
-     */
+     *!/
     static walkPath(setFunc, resetFunc, nodes, toBeReset, nodeStart, steps) {
         toBeReset.map(n => {
             resetFunc(n);
@@ -649,12 +995,12 @@ export class ViewportManager {
         }
     }
 
-    /**
+    /!**
      * Shows every edge (relation) once, this may lead to duplicate nodes though.
      * I made this because I needed to see and modify all relations
      * @param nodes {Node[]}
      * @param edges {Edge[]}
-     */
+     *!/
     static calculateAllRelations(nodes, edges) {
         // Mark all nodes as unused so we can find the ones we didn't use
         // Also show nodes we didn't touch, but I don't think that should happen because the edge revisions never got deleted
@@ -694,12 +1040,12 @@ export class ViewportManager {
         return incompleteEdges;
     }
 
-    /**
+    /!**
      *
      * @param nodes {Node[]}
      * @param edges {Edges[]}
      * @param newNode {Node}
-     */
+     *!/
     static allRelationAddNode(nodes, edges, newNode) {
 
     }
@@ -709,4 +1055,78 @@ export class ViewportManager {
     }
 
 
+}*/
+
+export class UserExperience {
+    /**
+     *
+     * @param net {Net}
+     */
+    constructor(net) {
+        this.net = net;
+    }
+    static async isAuthenticated() {
+        if (!localStorage.getItem('access_token')) {
+            return false;
+        }
+
+        try {
+            await axios.get(`${UrlUsers}/${state.userId}/Nodes`, {params: {filter: {limit: 0}}});
+        } catch (e) {
+
+            return false;
+        }
+        return true;
+    }
+    async getDefaultNet() {
+        const result = await axios.get(resolveApiUrl(api, UrlDefaultUser), {params: {filter: netFilter}});
+        this.setNetFromResult(result)
+    }
+    async getUserNet() {
+        const result = await axios.get(resolveApiUrl(api, UrlUsers, localStorage.getItem(USER_ID)), {params: {filter: netFilter}});
+        this.setNetFromResult(result)
+    }
+    async checkLoginGetNodes() {
+        const loggedIn = await this.net.is;
+        if (loggedIn) {
+            this.getUserNet();
+        } else {
+            this.getDefaultNet();
+        }
+    }
+    static async login(email, password) {
+        const result = await axios.post(resolveApiUrl(api, UrlUsers, 'login'), {email, password});
+        UserExperience.setLoginResults(email, result.data.id, result.data.userId);
+    }
+    static async logout() {
+        await axios.post(resolveApiUrl(api, UrlUsers, 'logout'));
+    }
+
+    setNetFromResult(result) {
+        if (!result || !result.data || !result.data.length) {
+            state.net.nodes = [];
+            state.net.edges = [];
+            return;
+        }
+        const user = result.data[0];
+
+        const nodes = user.vNodes.map(o => new Node(o));
+        const edges = user.edges.map(o => new Edge(o));
+        state.net = new Net(nodes, edges, state.netPersistor);
+    }
+    /**
+     *
+     * @param {String} accessToken
+     * @param {Number} userId
+     * @param {String} email
+     */
+    static setLoginResults(accessToken, userId, email) {
+        state.accessToken = accessToken;
+        state.userId = userId;
+        state.email = email;
+        localStorage.setItem('access_token', state.accessToken);
+        localStorage.setItem(USER_ID, state.userId);
+        axios.defaults.params['access_token'] = localStorage.getItem('access_token');
+    }
 }
+

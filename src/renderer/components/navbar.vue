@@ -27,11 +27,10 @@
         methods: {
             ...mapActions(['handleNewNode', 'handleDeleteNodes']),
             btnNewNodeClicked() {
-                const parents = this.$store.state.memosyne.net.groupSelectedNodes$.getValue();
-                this.handleNewNode({parents});
+                const parents = this.$store.state.memosyne.net.createNode(null);
             },
             btnDeleteNodesClicked() {
-                this.handleDeleteNodes({nodes: this.$store.state.memosyne.selectedNodes$.getValue()});
+                Net.handleDeleteNodes({nodes: this.$store.state.memosyne.selectedNodes$.getValue()});
             },
         }
     }

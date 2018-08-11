@@ -2,6 +2,7 @@
     <div class="node"
          @keydown.stop="hotkey($event)"
          ref="root"
+         v-show="latestRevision.visible"
     >
 
         <div class="nucleus card-panel"
@@ -10,7 +11,7 @@
              editSelected: editSelected,
              preEditSelected: preEditSelected,
              'z-depth-4': groupSelected,
-             persisted: latestRevision && latestRevision.persisted,
+             persisted: latestRevision.persisted,
              }"
              tabindex="99"
              ref="nucleus"
@@ -72,7 +73,7 @@
 <script>
     import {debounce} from 'lodash';
     import {mapMutations, mapActions} from 'vuex';
-    import Node from './node.vue';
+    import {Node} from '../net.js';
 
     export default {
         name: "node",
@@ -83,7 +84,8 @@
                 return;
             }
             this.node.vueInstances.splice(i, 1);
-            delete this.$store.state.memosyne.nodeElementMap[this.$refs.root];
+            this.net.nodeElementMap.delete(this);
+            // delete this.$store.state.memosyne.nodeElementMap[this.$refs.root];
         },
         mounted() {
             /**
@@ -91,7 +93,7 @@
              */
             const node = this.node;
             node.latestRevision$.subscribe(v => {
-                this.latestRevision = v;
+                 this.latestRevision = v || {};
             });
             // TODO Let's see if the subscription hook has access to the props
             // It doesn't look like it can, but there must be a better way
@@ -108,7 +110,8 @@
             node.vueInstances.push(this);
             this.$nextTick(this.fitTextArea);
             this.$nextTick(this.renderMarkdown);
-            this.$store.state.memosyne.nodeElementMap[this.$refs.root] = this;
+/*            this.$store.state.memosyne.nodeElementMap[this.$refs.root] = this;*/
+            this.net.nodeElementMap.set(this, this.node);
             this.showMarkdown();
         },
         props: {
@@ -124,16 +127,15 @@
         data() {
             return {
                 markdown: '',
-                latestRevision: undefined,
                 /*                editSelected: false,*/
                 groupSelected: false,
                 editSelected: false,
                 preEditSelected: false,
+                latestRevision: {},
             }
         },
         methods: {
             ...mapMutations(['setSelectedNodes']),
-            ...mapActions(['handleHotkeyPress', 'handleNewNode']),
             showTextArea() {
                 this.$refs.textarea.style.display = 'block';
                 this.$refs.markdown.style.display = 'none';
@@ -152,7 +154,7 @@
                         event.key === "ArrowDown" ||
                         event.key === "ArrowLeft" ||
                         event.key === "ArrowRight") {
-                        this.handleHotkeyPress({vueInstance: this, node: this.node, event: event});
+                        this.net.handleHotkeyPress(this, this.node, event);
                     }else {
                         this.node.net.removePreEditingNode(this.node);
                     }
@@ -168,23 +170,6 @@
                 }
 
 
-/*                switch(event.key) {
-                    case "ArrowLeft":
-                    case "ArrowRight":
-                    case "ArrowUp":
-                    case "ArrowDown":
-                        if (this.preEditSelected) {
-                        }
-                        break;
-                    case "Escape":
-                        this.handleHotkeyPress({vueInstance: this, node: this.node, event: event});
-                        break;
-                    case "Enter":
-                        if (event.ctrlKey) {
-                            const parents = this.node.net.groupSelectedNodes$.getValue();
-                            this.handleNewNode({parents});
-                        }
-                }*/
             },
             handleClick(event) {
                 this.node.net.setEditingNode(this.node);
@@ -218,7 +203,7 @@
                 this.$refs.textarea.focus();
             },
             hotkey(event) {
-                this.handleHotkeyPress({vueInstance: this, node: this.node, event});
+                this.net.handleHotkeyPress(this, this.node, event);
             },
         },
         computed: {

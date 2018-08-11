@@ -3,14 +3,13 @@
     <div id="node-container"
          class="node-children"
          tabindex="255">
-<!-- @keydown.stop.prevent="handleTextboxPress($event)"-->
         <div
-                v-for="rootNode in displayRootNodes"
+                v-for="rootNode in displayRootNodes$"
                 :key="rootNode.id">
             <node
                     v-if="rootNode.visible"
                     :node="rootNode"
-                    :siblings="displayRootNodes.filter(n => n !== rootNode)"
+                    :siblings="displayRootNodes$.filter(n => n !== rootNode)"
             ></node>
         </div>
 
@@ -21,17 +20,14 @@
 
 <script>
     import Node from './node.vue';
-    import {mapGetters, mapActions} from 'vuex';
-    import {Subject} from 'rxjs';
-    import {debounceTime} from 'rxjs/operators';
+    import {setFocusedInstance, sleep} from "../net";
+
 
     export default {
         name: "node-container",
         components: {Node},
-        data () {
-            return {
-                displayRootNodes: [],
-            }
+        data() {
+            return {}
         },
         mounted() {
             // const memosyne = this.$store.state.memosyne;
@@ -39,9 +35,7 @@
 
         },
         methods: {
-            ...mapActions(['handleHotkeyPress', 'setSelectedNodes']),
             /**
-             *
              * @param {KeyboardEvent} e
              */
             handleTextboxPress(e) {
@@ -49,24 +43,28 @@
             }
         },
         subscriptions() {
+            // This subscription will focus a node if none was focused originally, I think
+            this.net.displayRootNodes$.subscribe(async n => {
+                await sleep(1);
+                this.net.pushMessage("Possibly auto-preEditing node");
+                if (
+                    this.net.displayRootNodes$.getValue().length &&
+                    !this.net.editSelectedNodes$.getValue().length &&
+                    !this.net.groupSelectedNodes$.getValue().length &&
+                    !this.net.predEditSelectedNodes$.getValue().length
+                ) {
+                    this.net.pushMessage("Auto-preEditing node");
+                    const focusedNode = this.net.displayRootNodes$.getValue()[0];
+                    this.net.setPreEditingNode(focusedNode);
+                    setFocusedInstance(this.net, null, focusedNode.vueInstances[0])
+                }
+            });
             /**
              * @type {Net}
              */
-            const memosyne = this.$store.state.memosyne;
-            const net = memosyne.net;
-            const observ = new Subject();
-            net.recomputeDisplaySignal$.subscribe(
-                () => {
-                    observ.next(net.nodes.filter(memosyne.rootNodeFilter))
-                }
-            );
-            observ.subscribe((v) => {
-                this.displayRootNodes = v;
-            });
-            setTimeout(() => observ.next(net.nodes.filter(memosyne.rootNodeFilter)));
             return {
-
-            }
+                displayRootNodes$: this.net.displayRootNodes$,
+            };
         }
     }
 </script>

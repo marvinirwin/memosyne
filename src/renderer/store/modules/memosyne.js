@@ -13,40 +13,6 @@ const DebugStore = require('debug')('mem:store');
  * @returns String
  */
 
-const netFilter = {
-    include: [
-        {
-            relation: 'vNodes',
-            scope: {
-                where: {visible: true, text: {neq: null}},
-                order: ['lastModified DESC'],
-                include: [
-                    {
-                        relation: 'nodeRevisions',
-                        scope: {
-                            limit: 1,
-                            order: ['createdTimestamp DESC'],
-                        },
-                    }
-                ],
-            },
-        },
-        {
-            relation: 'edges',
-            scope: {
-                include: [
-                    {
-                        relation: 'edgeRevisions',
-                        scope: {
-                            limit: 1,
-                            order: ['createdTimestamp DESC']
-                        }
-                    }
-                ],
-            },
-        },
-    ],
-};
 
 // What is axios.defaults.auth?  How is it different than headers?
 // Can I set a default query string parameter?
@@ -70,7 +36,6 @@ const state = {
     },
     depthMarkNode: undefined,
     selectedNodes$: new BehaviorSubject([]),
-    nodeElementMap: {},
 };
 
 const mutations = {
@@ -90,19 +55,6 @@ const getters = {
      * @param state
      * @return {Node[]}
      */
-    displayRootNodes(state) {
-        const net = state.net;
-
-        if (state.depthMarkNode) {
-            // If we had a depthMarkNode we would walk down the graph a bit before calculating the nodes to draw
-        }
-
-        const result = net ?
-            net.nodes.filter(state.rootNodeFilter) :
-            [];
-
-        return result
-    },
 };
 
 export default {

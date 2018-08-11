@@ -17,33 +17,32 @@ if (!process.env.IS_WEB) Vue.use(require('vue-electron'));
 Vue.http = Vue.prototype.$http = axios;
 Vue.config.productionTip = false;
 
+const persistor = new NetPersistor(
+    (node) => Net.newNode(node).then(() => node.persisted = true),
+    (edge) => Net.newEdge(edge).then(() => edge.persisted = true),
+    (nodeRevision) => Net.persistNodeRevision(nodeRevision).then(() => nodeRevision.persisted = true),
+    (edgeRevision) => Net.persistEdgeRevision(edgeRevision).then(() => edgeRevision.persisted = true),
+    ""
+);
+
+const net = new Net([], [], persistor);
+const userExperience = new UserExperience(net);
+userExperience.checkLoginGetNodes().catch(e => console.log(e));
+
 Vue.mixin({
-    data: function() {
-        const persistor = new NetPersistor(
-            (node) => Net.newNode(node).then(() => node.persisted = true),
-            (edge) => Net.newEdge(edge).then(() => edge.persisted = true),
-            (nodeRevision) => Net.persistNodeRevision(nodeRevision).then(() => nodeRevision.persited = true),
-            (edgeRevision) => Net.persistEdgeRevision(edgeRevision).then(() => edgeRevision.persited = true),
-        );
-        const net = new Net([], [], persistor);
-        const userExperience = new UserExperience(net);
-        userExperience.checkLoginGetNodes()
-
-
-        net.try.catch(console.log);
+    data() {
         return {
-            get net() {
-                return net;
-            }
+                net,
+                userExperience
         }
     }
-})
+});
 
 
 /* eslint-disable no-new */
 new Vue({
-  components: { App },
-  router,
-  store,
-  template: '<App/>'
+    components: {App},
+    router,
+    store,
+    template: '<App/>'
 }).$mount('#app')

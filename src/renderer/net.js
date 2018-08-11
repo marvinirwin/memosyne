@@ -718,9 +718,10 @@ export class Net {
                 // that vue instance's immediate parent's node
                 this.pushMessage('Arrow left pressed, selecting parent');
                 let parent = vueInstance.$parent;
-/*                let parentNode = parent.node;*/
-                setFocusedInstance(this, vueInstance, parent);
-                // parent.focusTextarea();
+                // If we're at a root node then the parent wont have a node, so don't go anywhere
+                if (parent.node) {
+                    setFocusedInstance(this, vueInstance, parent);
+                }
                 break;
             case "ArrowRight":
                 this.pushMessage('Arrow left pressed, selecting child');

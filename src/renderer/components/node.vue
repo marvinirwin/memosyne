@@ -182,8 +182,8 @@
                 const tArea = this.$refs.textarea;
                 const markdown = this.$refs.markdown;
 
-                const nucleus = this.$refs.nucleus;
-                const hLimit = window.innerHeight * 0.75;
+/*                const nucleus = this.$refs.nucleus;
+                const hLimit = window.innerHeight * 0.75;*/
 
                 if (!this.editSelected$) {
                     tArea.style.height = markdown.scrollHeight + "px";

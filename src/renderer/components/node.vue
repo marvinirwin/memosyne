@@ -7,10 +7,10 @@
 
         <div class="nucleus card-panel"
              :class="{
-             groupSelected: groupSelected,
-             editSelected: editSelected,
-             preEditSelected: preEditSelected,
-             'z-depth-4': groupSelected,
+             groupSelected: groupSelected$,
+             editSelected: editSelected$,
+             preEditSelected: preEditSelected$,
+             'z-depth-4': groupSelected$,
              persisted: latestRevision.persisted,
              }"
              tabindex="99"
@@ -51,8 +51,8 @@
                     <span>Successor length: {{node.successorNodes.length}}</span>
                 </div>
                 <div>
-                    <span>Predecessor edges length: {{node.predecessorEdges$.getValue().length}}</span>
-                    <span>Successor edges length: {{node.successorEdges$.getValue().length}}</span>
+                    <span>Predecessor edges length: {{predecessorEdges$.length}}</span>
+                    <span>Successor edges length: {{successorEdges$.length}}</span>
                 </div>
             </div>
         </div>
@@ -97,22 +97,13 @@
             });
             // TODO Let's see if the subscription hook has access to the props
             // It doesn't look like it can, but there must be a better way
-            this.node.groupSelected$.subscribe((v) => {
-                this.groupSelected = v;
-            });
-            this.node.editSelected$.subscribe((v) => {
-                this.editSelected = v;
-            });
-            this.node.preEditSelected$.subscribe(v => {
-                this.preEditSelected = v;
-            });
-
             node.vueInstances.push(this);
-            this.$nextTick(this.fitTextArea);
+/*            this.$nextTick(this.fitTextArea);*/
             this.$nextTick(this.renderMarkdown);
 /*            this.$store.state.memosyne.nodeElementMap[this.$refs.root] = this;*/
             this.net.nodeElementMap.set(this, this.node);
             this.showMarkdown();
+
         },
         props: {
             node: {
@@ -127,15 +118,11 @@
         data() {
             return {
                 markdown: '',
-                /*                editSelected: false,*/
-                groupSelected: false,
-                editSelected: false,
-                preEditSelected: false,
+                markdownScrollHeight: 0,
                 latestRevision: {},
             }
         },
         methods: {
-            ...mapMutations(['setSelectedNodes']),
             showTextArea() {
                 this.$refs.textarea.style.display = 'block';
                 this.$refs.markdown.style.display = 'none';
@@ -149,11 +136,12 @@
              * @param event {KeyboardEvent}
              */
             handleTextboxPress(event) {
-                if (this.preEditSelected) {
+                if (this.preEditSelected$) {
                     if (event.key === "ArrowUp" ||
                         event.key === "ArrowDown" ||
                         event.key === "ArrowLeft" ||
-                        event.key === "ArrowRight") {
+                        event.key === "ArrowRight" ||
+                        (event.key === 'e' && event.ctrlKey)) {
                         this.net.handleHotkeyPress(this, this.node, event);
                     }else {
                         this.node.net.removePreEditingNode(this.node);
@@ -176,24 +164,30 @@
             },
             renderMarkdown() {
                 this.markdown = document.converter.makeHtml(this.node.text);
-                this.$nextTick(() => this.fitTextArea());
+                // Record the scrollHeight of our markdown when we can,
+                // so that when we show the text area it has an idea of how big to make itself
+                setTimeout(() => {
+                    this.markdownScrollHeight = this.$refs.markdown.scrollHeight;
+                    this.fitTextArea();
+                });
             },
             fitTextArea() {
                 const tArea = this.$refs.textarea;
-                const markdown = this.$refs.markdown;
+                // const markdown = this.$refs.markdown;
 
 /*                const nucleus = this.$refs.nucleus;
                 const hLimit = window.innerHeight * 0.75;*/
 
-                if (!this.editSelected$) {
-                    tArea.style.height = markdown.scrollHeight + "px";
-                    tArea.style.minHeight = '16px';
-                    /*                    tArea.style.height = markdown.scrollHeight + "px"; */
+                tArea.style.height = this.markdownScrollHeight + "px";
+                tArea.style.minHeight = '16px';
+
+/*                if (!this.editSelected$) {
+                    /!*                    tArea.style.height = markdown.scrollHeight + "px"; *!/
                 } else {
                     tArea.style.height = markdown.scrollHeight + "px";
                     tArea.style.minHeight = '16px';
-                    /*                    tArea.style.height = markdown.scrollHeight + "px"; */
-                }
+                    /!*                    tArea.style.height = markdown.scrollHeight + "px"; *!/
+                }*/
             },
             /**
              *
@@ -223,7 +217,9 @@
             return {
                 groupSelected$: node.groupSelected$,
                 editSelected$: node.editSelected$,
-                preEditSelected: node.preEditSelected$,
+                preEditSelected$: node.preEditSelected$,
+                predecessorEdges$: node.predecessorEdges$,
+                successorEdges$: node.successorEdges$,
             }
         },
     }

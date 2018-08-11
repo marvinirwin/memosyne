@@ -1,5 +1,5 @@
 import {BehaviorSubject, Subject} from 'rxjs';
-import {debounceTime} from 'rxjs/operators'
+import {debounceTime, scan} from 'rxjs/operators'
 import axios from 'axios';
 import * as $ from 'jquery';
 
@@ -157,11 +157,11 @@ export class Node extends gen_Node {
 
         // If there are any new nodes check if we're related to them
         // and check our edges to see if we should stick them into our predecessor
-/*        this.netNodes$.subscribe(() => {
-            this.assignSuccessorAndPredecessorNodes();
-        });*/
-/*        this.successorEdges$.pipe(debounceTime(0)).subscribe(() => this.assignSuccessorAndPredecessorNodes());
-        this.predecessorEdges$.pipe(debounceTime(0)).subscribe(() => this.assignSuccessorAndPredecessorNodes());*/
+        /*        this.netNodes$.subscribe(() => {
+                    this.assignSuccessorAndPredecessorNodes();
+                });*/
+        /*        this.successorEdges$.pipe(debounceTime(0)).subscribe(() => this.assignSuccessorAndPredecessorNodes());
+                this.predecessorEdges$.pipe(debounceTime(0)).subscribe(() => this.assignSuccessorAndPredecessorNodes());*/
 
         this.nodeRevisions$.pipe(debounceTime(0)).subscribe(r => {
             if (!r || !r.length) return;
@@ -194,7 +194,6 @@ export class Node extends gen_Node {
             () => {
                 this.assignSuccessorAndPredecessorNodes()
             }
-
         );
     }
 
@@ -294,7 +293,7 @@ export class NodeRevision extends gen_NodeRevision {
     constructor(o, persisted) {
         super(o);
 
-/*        this.persisted = persisted;*/
+        /*        this.persisted = persisted;*/
     }
 }
 
@@ -363,25 +362,6 @@ function resolveApiUrl(...args) {
 
 /**
  *
- * @param element {HTMLElement}
- */
-/*function scrollToCenter(element) {
-    const elementRect = element.getBoundingClientRect();
-    const absoluteElementTop = elementRect.top + window.pageYOffset;
-    const absoluteElementLeft = elementRect.left + window.pageXOffset;
-    const middleTop = absoluteElementTop - (window.innerHeight / 2);
-    const middleLeft = absoluteElementLeft - (window.innerWidth / 2);
-    window.scrollTo(middleLeft, middleTop);
-    /!*    window.scrollTo({
-                top: middleTop,
-                left: middleLeft,
-            behavior: 'smooth'
-            }
-        )*!/
-}*/
-
-/**
- *
  * @param net {Net}
  * @param oldInstance {Vue}
  * @param newInstance {Vue}
@@ -401,6 +381,7 @@ export function setFocusedInstance(net, oldInstance, newInstance) {
     newInstance.$refs.textarea.focus();
     net.removePreEditingNode(newInstance.node);
     net.setPreEditingNode(newInstance.node);
+    net.groupSelectedNodes$.next([newInstance.node]);
 }
 
 export class Net {
@@ -447,7 +428,7 @@ export class Net {
         /**
          * @type {BehaviorSubject<Node>}
          */
-        this.predEditSelectedNodes$ = new BehaviorSubject([]);
+        this.preEditSelectedNodes$ = new BehaviorSubject([]);
         /**
          * @type {BehaviorSubject<Node>}
          */
@@ -473,7 +454,74 @@ export class Net {
          */
         this.nodeElementMap = new Map();
 
-/*        this.viewportManager = new ViewportManager();*/
+        /*        this.viewportManager = new ViewportManager();*/
+
+
+        // Take care of the transformation which needs to happen when we apply different kinds of selections to nodes
+        // HACK I don't think I should be relying on scan for side effects here
+        this.preEditSelectedNodes$.pipe(scan((previousNodes, newNodes) => {
+/*            this.pushMessage("Scan operator got called");*/
+            /**
+             *
+             * @param n {Node}
+             */
+            const previousFunc = (n) => {
+                n.preEditSelected$.next(false);
+                n.vueInstances.map(v => v.showMarkdown());
+            };
+            /**
+             *
+             * @param n {Node}
+             */
+            const newFunc = (n) => {
+                n.preEditSelected$.next(true);
+                n.vueInstances.map(v => v.showTextArea());
+            };
+            previousNodes.map(previousFunc);
+            newNodes.map(newFunc);
+            return newNodes;
+        })).subscribe();
+        this.editSelectedNodes$.pipe(scan((previousNodes, newNodes) => {
+/*            this.pushMessage("Scan operator got called");*/
+            /**
+             *
+             * @param n {Node}
+             */
+            const previousFunc = (n) => {
+                n.editSelected$.next(false);
+                n.vueInstances.map(v => v.showTextArea());
+            };
+            /**
+             *
+             * @param n {Node}
+             */
+            const newFunc = (n) => {
+                n.preEditSelected$.next(true);
+                n.vueInstances.map(v => v.showMarkdown());
+            };
+            previousNodes.map(previousFunc);
+            newNodes.map(newFunc);
+            return newNodes;
+        })).subscribe();
+        this.groupSelectedNodes$.pipe(scan((previousNodes, newNodes) => {
+            /**
+             *
+             * @param n {Node}
+             */
+            const previousFunc = (n) => {
+                n.groupSelected$.next(false);
+            };
+            /**
+             *
+             * @param n {Node}
+             */
+            const newFunc = (n) => {
+                n.groupSelected$.next(true);
+            };
+            previousNodes.map(previousFunc);
+            newNodes.map(newFunc);
+            return newNodes;
+        })).subscribe();
     }
 
     /**
@@ -520,19 +568,25 @@ export class Net {
      */
     setEditingNode(n) {
         this.messages$.next(this.messages$.getValue().concat('Setting editing node'));
-        this.groupSelectedNodes$.getValue().map(n => n.groupSelected$.next(false));
-        this.editSelectedNodes$.getValue().map(n => n.editSelected$.next(false));
-        this.predEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
+/*        this.groupSelectedNodes$.getValue().map(n => n.groupSelected$.next(false));
+        this.editSelectedNodes$.getValue().map(n => {
+            n.editSelected$.next(false);
+            n.vueInstances.map(v => v.showMarkdown());
+        });
+        this.preEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
 
         n.groupSelected$.next(true);
         n.editSelected$.next(true);
-        n.preEditSelected$.next(false);
+        n.preEditSelected$.next(false);*/
+
+        // Once we set a new editing node, set the previous ones to not editing
+/*        this.editSelectedNodes$.getValue().map(n => n.vueInstances.map(v => v.showMarkdown()));*/
 
         this.groupSelectedNodes$.next([n]);
         this.editSelectedNodes$.next([n]);
-        this.predEditSelectedNodes$.next([]);
+        this.preEditSelectedNodes$.next([]);
         n.vueInstances.map(v => {
-                v.showTextArea();
+            v.showTextArea();
         });
     }
 
@@ -544,13 +598,18 @@ export class Net {
      */
     setPreEditingNode(n) {
         this.pushMessage('Setting preEditingNode');
-        this.predEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
+/*        this.preEditSelectedNodes$.getValue().map(n => {
+                n.preEditSelected$.next(false);
+                n.vueInstances.map(v => v.showMarkdown());
+            }
+        );*/
 
-        n.groupSelected$.next(true);
+/*        n.groupSelected$.next(true);
         n.editSelected$.next(false);
-        n.preEditSelected$.next(true);
+        n.preEditSelected$.next(true);*/
 
-        this.predEditSelectedNodes$.next([n]);
+
+        this.preEditSelectedNodes$.next([n]);
     }
 
     /**
@@ -558,9 +617,9 @@ export class Net {
      */
     removePreEditingNode(n) {
         this.pushMessage('Removing pre-editing node');
-        this.predEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
+        this.preEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
         n.preEditSelected$.next(false);
-        this.predEditSelectedNodes$.next([n]);
+        this.preEditSelectedNodes$.next([n]);
     }
 
     /**
@@ -599,27 +658,6 @@ export class Net {
         this.messages$.next(this.messages$.getValue().concat(i));
     }
 
-/*    /!**
-     * Takes a function which decides if a node is a root node.
-     * @param isRoot
-     *!/
-    constructColumns(isRoot) {
-        const roots = this.nodes.filter(isRoot);
-        const columns = [roots];
-    }
-
-    /!**
-     *
-     * @param {Cell[]} previousColumn
-     *!/
-    constructColumn(previousColumn) {
-        for (let i = 0; i < previousColumn.length; i++) {
-            const node = previousColumn[i];
-            const leavingEdges = this.edges.filter(e => e.n2 === node.id);
-
-        }
-    }*/
-
     /**
      *
      * @param node
@@ -630,6 +668,7 @@ export class Net {
         const result = await axios.get(resolveApiUrl(api, UrlNodes, returned.data.id + ''));
         return new Node(result.data);
     }
+
     /**
      * @param {Edge} edge
      * @return {Promise<Edge>}
@@ -639,6 +678,7 @@ export class Net {
         const result = await axios.get(resolveApiUrl(api, UrlEdges, returned.data.id + ''));
         return new Edge(result.data);
     }
+
     /**
      *
      * @param {gen_NodeRevision} nodeRevision
@@ -662,12 +702,13 @@ export class Net {
         revision.persisted = true;
         return revision;
     }
+
     /**
      *
      * @param {EdgeRevision} edgeRevision
      * @return {Promise<EdgeRevision>}
      */
-    static async persistEdgeRevision( edgeRevision) {
+    static async persistEdgeRevision(edgeRevision) {
         const result = edgeRevision.id ?
             await axios.put(resolveApiUrl(api, UrlEdgeRevisions, edgeRevision.id + '')) :
             await axios.post(resolveApiUrl(api, UrlEdgeRevisions), edgeRevision);
@@ -682,6 +723,7 @@ export class Net {
 
         return new EdgeRevision(revisitionResult.data);
     }
+
     /**
      *
      * @param {Vue} vueInstance
@@ -693,7 +735,7 @@ export class Net {
         let newInstance;
         let siblingInstances = [];
         let myIndex = -1;
-/*        const selectedNodes = this.groupSelectedNodes$.getValue();*/
+        /*        const selectedNodes = this.groupSelectedNodes$.getValue();*/
         switch (event.key) {
             // CTRL+e is the hotkey to erase a node
             case "e":
@@ -786,6 +828,7 @@ export class Net {
                 break;
         }
     }
+
     /**
      *
      * @param nodes {Node[]}
@@ -802,6 +845,7 @@ export class Net {
             await Net.persistNodeRevision(o);
         }
     }
+
     /**
      *
      * @param {String} text
@@ -825,12 +869,12 @@ export class Net {
                 const parent = parents[i];
                 const edge = await Net.newEdge({});
                 const revision = await Net.persistEdgeRevision(
-                {
-                    edgeId: edge.id,
+                    {
+                        edgeId: edge.id,
                         n1: parent.id,
                         n2: newNode.id,
                         classification: 'parent',
-                });
+                    });
                 edge.edgeRevisions$.next(edge.edgeRevisions$.getValue().concat(revision));
                 newEdges.push(edge);
             }
@@ -850,6 +894,7 @@ export class Net {
  * @callback EdgePersistor
  * @param {Edge} edge
  */
+
 /**
  * Persists an edgeRevision, both in localStorage and to an api
  * @callback EdgeRevisionPersistor
@@ -1157,6 +1202,7 @@ export class UserExperience {
         this.email = undefined;
         this.capacityFraction = undefined;
     }
+
     static async isAuthenticated() {
         if (!localStorage.getItem('access_token')) {
             return false;
@@ -1170,16 +1216,19 @@ export class UserExperience {
         }
         return true;
     }
+
     async getDefaultNet() {
         this.net.pushMessage("Getting default net");
         const result = await axios.get(resolveApiUrl(api, UrlDefaultUser), {params: {filter: netFilter}});
         this.setNetFromResult(result)
     }
+
     async getUserNet() {
         this.net.pushMessage("Getting user net");
         const result = await axios.get(resolveApiUrl(api, UrlUsers, localStorage.getItem(USER_ID)), {params: {filter: netFilter}});
         this.setNetFromResult(result)
     }
+
     async checkLoginGetNodes() {
         this.net.pushMessage("Checking login and getting nodes");
         const loggedIn = await UserExperience.isAuthenticated();
@@ -1191,10 +1240,12 @@ export class UserExperience {
         await sleep(1)
         // Now try and focus a node's element
     }
+
     static async login(email, password) {
         const result = await axios.post(resolveApiUrl(api, UrlUsers, 'login'), {email, password});
         UserExperience.setLoginResults(email, result.data.id, result.data.userId);
     }
+
     static async logout() {
         await axios.post(resolveApiUrl(api, UrlUsers, 'logout'));
     }
@@ -1217,6 +1268,7 @@ export class UserExperience {
         this.net.addNodesAndEdges(nodes, edges);
 
     }
+
     /**
      *
      * @param {String} accessToken

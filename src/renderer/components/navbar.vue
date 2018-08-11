@@ -1,7 +1,7 @@
 <template>
     <div>
-        <input id="input_email" @keydown.enter="userExperience.login(email, password)" v-model="email" >
-        <input id="input_password" @keydown.enter="userExperience.login(email, password)" v-model="password" type="password">
+        <input id="input_email" @keydown.enter="userExperience.login(email, password)" v-model="email" placeholder="email">
+        <input id="input_password" @keydown.enter="userExperience.login(email, password)" v-model="password" type="password" placeholder="password">
         <button id="btn_login" @click="userExperience.login(email, password)">Log in</button>
         <button id="btn_logout" @click="userExperience.logout()">Log out</button>
         <div id="div_email">Email: {{userExperience.email}}</div>

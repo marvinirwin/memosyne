@@ -156,8 +156,6 @@
                 if (event.ctrlKey && event.key === "Enter") {
                     this.node.net.createNode(this).catch(e => console.log(e));
                 }
-
-
             },
             handleClick(event) {
                 this.node.net.setEditingNode(this.node);
@@ -189,10 +187,6 @@
                     /!*                    tArea.style.height = markdown.scrollHeight + "px"; *!/
                 }*/
             },
-            /**
-             *
-             * @param {KeyboardEvent} event
-             */
             focusTextarea() {
                 this.$refs.textarea.focus();
             },

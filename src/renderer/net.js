@@ -460,7 +460,7 @@ export class Net {
         // Take care of the transformation which needs to happen when we apply different kinds of selections to nodes
         // HACK I don't think I should be relying on scan for side effects here
         this.preEditSelectedNodes$.pipe(scan((previousNodes, newNodes) => {
-/*            this.pushMessage("Scan operator got called");*/
+            /*            this.pushMessage("Scan operator got called");*/
             /**
              *
              * @param n {Node}
@@ -482,7 +482,7 @@ export class Net {
             return newNodes;
         })).subscribe();
         this.editSelectedNodes$.pipe(scan((previousNodes, newNodes) => {
-/*            this.pushMessage("Scan operator got called");*/
+            /*            this.pushMessage("Scan operator got called");*/
             /**
              *
              * @param n {Node}
@@ -568,19 +568,19 @@ export class Net {
      */
     setEditingNode(n) {
         this.messages$.next(this.messages$.getValue().concat('Setting editing node'));
-/*        this.groupSelectedNodes$.getValue().map(n => n.groupSelected$.next(false));
-        this.editSelectedNodes$.getValue().map(n => {
-            n.editSelected$.next(false);
-            n.vueInstances.map(v => v.showMarkdown());
-        });
-        this.preEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
+        /*        this.groupSelectedNodes$.getValue().map(n => n.groupSelected$.next(false));
+                this.editSelectedNodes$.getValue().map(n => {
+                    n.editSelected$.next(false);
+                    n.vueInstances.map(v => v.showMarkdown());
+                });
+                this.preEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
 
-        n.groupSelected$.next(true);
-        n.editSelected$.next(true);
-        n.preEditSelected$.next(false);*/
+                n.groupSelected$.next(true);
+                n.editSelected$.next(true);
+                n.preEditSelected$.next(false);*/
 
         // Once we set a new editing node, set the previous ones to not editing
-/*        this.editSelectedNodes$.getValue().map(n => n.vueInstances.map(v => v.showMarkdown()));*/
+        /*        this.editSelectedNodes$.getValue().map(n => n.vueInstances.map(v => v.showMarkdown()));*/
 
         this.groupSelectedNodes$.next([n]);
         this.editSelectedNodes$.next([n]);
@@ -598,15 +598,15 @@ export class Net {
      */
     setPreEditingNode(n) {
         this.pushMessage('Setting preEditingNode');
-/*        this.preEditSelectedNodes$.getValue().map(n => {
-                n.preEditSelected$.next(false);
-                n.vueInstances.map(v => v.showMarkdown());
-            }
-        );*/
+        /*        this.preEditSelectedNodes$.getValue().map(n => {
+                        n.preEditSelected$.next(false);
+                        n.vueInstances.map(v => v.showMarkdown());
+                    }
+                );*/
 
-/*        n.groupSelected$.next(true);
-        n.editSelected$.next(false);
-        n.preEditSelected$.next(true);*/
+        /*        n.groupSelected$.next(true);
+                n.editSelected$.next(false);
+                n.preEditSelected$.next(true);*/
 
 
         this.preEditSelectedNodes$.next([n]);
@@ -740,7 +740,7 @@ export class Net {
             // CTRL+e is the hotkey to erase a node
             case "e":
                 if (event.ctrlKey) {
-                    Net.deleteNodes([node]);
+                    this.addNodeHideToQue([node]);
                 }
                 break;
             case "Enter":
@@ -834,7 +834,7 @@ export class Net {
      * @param nodes {Node[]}
      * @return {Promise<void>}
      */
-    static async deleteNodes(nodes) {
+    async addNodeHideToQue(nodes) {
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
             /**
@@ -842,7 +842,8 @@ export class Net {
              */
             const o = node.latestRevision$.getValue();
             o.visible = false;
-            await Net.persistNodeRevision(o);
+            this.db.queNodeRevision.push(o);
+            // await Net.persistNodeRevision(o);
         }
     }
 
@@ -914,11 +915,12 @@ export class NetPersistor {
      * @param {EdgeRevisionPersistor} persistEdgeRevision
      * @param localstorageKey {String}
      */
-    constructor(persistNode, persistEdge, persistNodeRevision, persistEdgeRevision, localstorageKey) {
+    constructor(persistNode, persistEdge, persistNodeRevision, persistEdgeRevision, localstorageKey, errorHandlingFunc) {
         this.persistNode = persistNode;
         this.persistEdge = persistEdge;
         this.persistNodeRevision = persistNodeRevision;
         this.persistEdgeRevision = persistEdgeRevision;
+        this.errorHandlingFunc = errorHandlingFunc;
 
         /**
          *
@@ -987,7 +989,7 @@ export class NetPersistor {
     async attendQue(queNode, queEdge, queNodeRevision, queEdgeRevision) {
         while (queNode.length) {
             const queNodeElement = queNode[0];
-            await this.persistNode(queNodeElement);
+            await this.persistNode(queNodeElement).catch(this.errorHandlingFunc);
             queNodeElement.persisted = true;
             queNode.splice(0, 1);
         }
@@ -999,13 +1001,13 @@ export class NetPersistor {
         }
         while (queNodeRevision.length) {
             const queNodeRevisionElement = queNodeRevision[0];
-            await this.persistNodeRevision(queNodeRevisionElement);
+            await this.persistNodeRevision(queNodeRevisionElement).catch(this.errorHandlingFunc);
             queNodeRevisionElement.persisted = true;
             queNodeRevision.splice(0, 1);
         }
         while (queEdgeRevision.length) {
             const queEdgeRevisionElement = queEdgeRevision[0];
-            await this.persistEdgeRevision(queEdgeRevisionElement);
+            await this.persistEdgeRevision(queEdgeRevisionElement).catch(this.errorHandlingFunc);
             queEdgeRevisionElement.persisted = true;
             queEdgeRevision.splice(0, 1);
         }
@@ -1201,6 +1203,14 @@ export class UserExperience {
         this.accessToken = undefined;
         this.email = undefined;
         this.capacityFraction = undefined;
+        /**
+         *
+         * @type {Subject<String>}
+         */
+        this.messages$ = new Subject();
+    }
+    pushMessage(m) {
+        this.messages$.next(m);
     }
 
     static async isAuthenticated() {
@@ -1241,12 +1251,12 @@ export class UserExperience {
         // Now try and focus a node's element
     }
 
-    static async login(email, password) {
+    async login(email, password) {
         const result = await axios.post(resolveApiUrl(api, UrlUsers, 'login'), {email, password});
-        UserExperience.setLoginResults(email, result.data.id, result.data.userId);
+        UserExperience.setLoginResults(result.data.id, result.data.userId, email);
     }
 
-    static async logout() {
+    async logout() {
         await axios.post(resolveApiUrl(api, UrlUsers, 'logout'));
     }
 
@@ -1260,11 +1270,27 @@ export class UserExperience {
         }
         const user = result.data[0];
 
+        /**
+         * @type {Node[]}
+         */
         const nodes = user.vNodes.map(o => new Node(o));
+        /**
+         * @type {Edge[]}
+         */
         const edges = user.edges.map(o => new Edge(o));
         // There should be a way to clear the net
-        nodes.map(n => n.persisted = true);
-        edges.map(n => n.persisted = true);
+        nodes.map(n => {
+            n.persisted = true;
+            n.nodeRevisions$.getValue().map(r => {
+                r.persisted = true;
+            });
+        });
+        edges.map(n => {
+            n.persisted = true;
+            n.edgeRevisions$.getValue().map(r => {
+                r.persisted = true;
+            });
+        });
         this.net.addNodesAndEdges(nodes, edges);
 
     }
@@ -1276,6 +1302,7 @@ export class UserExperience {
      * @param {String} email
      */
     static setLoginResults(accessToken, userId, email) {
+        debugger;
         this.accessToken = accessToken;
         this.userId = userId;
         this.email = email;

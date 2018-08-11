@@ -22,7 +22,15 @@ const persistor = new NetPersistor(
     (edge) => Net.newEdge(edge).then(() => edge.persisted = true),
     (nodeRevision) => Net.persistNodeRevision(nodeRevision).then(() => nodeRevision.persisted = true),
     (edgeRevision) => Net.persistEdgeRevision(edgeRevision).then(() => edgeRevision.persisted = true),
-    ""
+    "",
+    /**
+     *
+     * @param e {XMLHttpRequest}
+     */
+    (e) => {
+        // HACK I'm counting on the userExperience variable to hoisted, so the declaration order doesn't matter
+        userExperience.pushMessage("Error " + e.status);
+    }
 );
 
 const net = new Net([], [], persistor);

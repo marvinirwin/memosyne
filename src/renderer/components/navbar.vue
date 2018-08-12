@@ -1,35 +1,37 @@
 <template>
-    <div>
-        <div style="position: fixed; background-color: lightblue; opacity: 0.5; height: 20vh; white-space: pre">
+    <div style="display: flex;">
+        <div>
             {{messages$ | lastMessages}}
         </div>
-        <div style="padding-top: 20vh;">
-            <div>
-                <input id="email" @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
-                       v-model="userExperience.email"
-                       placeholder="email">
-                <input id="password"
-                       @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
-                       v-model="userExperience.password" type="password" placeholder="password">
-            </div>
+        <div>
+            <input id="email" @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
+                   v-model="userExperience.email"
+                   placeholder="email">
+            <input id="password"
+                   @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
+                   v-model="userExperience.password" type="password" placeholder="password">
+        </div>
 
-            <div>
-                <div>Loading: {{loadingObjects$ | displayLoadingObject}}</div>
-                <!-- Will this need to be an observable because vue ownt detect changes to localStorage?
-                  Or will it wrap the getters and seeters in its own?-->
-                <div>Logged in: {{userExperience.userId}}</div>
-                <div>Parents: {{groupSelected$.length}}</div>
-                <span>PreEdits: {{preEditSelected$.length}}</span>
-                <span>Edits: {{editSelected$.length}}</span>
+        <div style="display: flex; flex-flow: column wrap;">
+            <div style="white-space: pre;">Loading: {{net.db.loadingObjectList.loadingObjects |
+                displayLoadingObjects}}
             </div>
+            <!-- Will this need to be an observable because vue ownt detect changes to localStorage?
+              Or will it wrap the getters and seeters in its own?-->
+            <div>Logged in: {{userExperience.userId}}</div>
+            <div>Parents: {{groupSelectedNodes$.length}}</div>
+            <span>PreEdits: {{preEditSelectedNodes$.length}}</span>
+            <span>Edits: {{editSelectedNodes$.length}}</span>
+        </div>
+        <div>
             <button id="btn_login" @click="userExperience.login(userExperience.email, userExperience.password)">Log in
             </button>
             <button id="btn_logout" @click="userExperience.logout()">Log out</button>
-            <div id="div_email">Email: {{userExperience.email}}</div>
-            <div id="div_capacity">Capacity Fraction {{userExperience.capacityFraction}}</div>
-            <button id="btn_newnode" @click="btnNewNodeClicked">New Node</button>
-            <button id="btn_deletenode" @click="btnDeleteNodesClicked">Delete Nodes</button>
         </div>
+        <div id="div_email">Email: {{userExperience.email}}</div>
+<!--        <div id="div_capacity">Capacity Fraction {{userExperience.capacityFraction}}</div>-->
+        <!--            <button id="btn_newnode" @click="btnNewNodeClicked">New Node</button>
+                    <button id="btn_deletenode" @click="btnDeleteNodesClicked">Delete Nodes</button>-->
 
     </div>
 
@@ -44,6 +46,9 @@
             return {}
         },
         filters: {
+            displayLoadingObjects(a) {
+                return a.join('\r\n');
+            },
             lastMessages(a) {
                 const start = a.length - 10;
                 return start < 0 ?

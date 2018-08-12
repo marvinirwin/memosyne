@@ -10,7 +10,7 @@ import {debounce} from 'lodash'
 import VueRx from 'vue-rx'
 
 
-import {Net, NetPersistor, UserExperience} from './net';
+import {Net, RequestHandler, UserExperience} from './net';
 
 import {
     Vuetify, // required
@@ -32,7 +32,7 @@ if (!process.env.IS_WEB) Vue.use(require('vue-electron'));
 Vue.http = Vue.prototype.$http = axios;
 Vue.config.productionTip = false;
 
-const persistor = new NetPersistor(
+const persistor = new RequestHandler(
     (node) => Net.newNode(node).then(() => node.persisted = true),
     (edge) => Net.newEdge(edge).then(() => edge.persisted = true),
     (nodeRevision) => Net.persistNodeRevision(nodeRevision).then(() => nodeRevision.persisted = true),

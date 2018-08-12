@@ -1,5 +1,5 @@
 import axios from 'axios';
-import {Node, Edge, Net, NetPersistor, gen_NodeRevision, gen_EdgeRevision, NodeRevision} from '../../net';
+import {Node, Edge, Net, RequestHandler, gen_NodeRevision, gen_EdgeRevision, NodeRevision} from '../../net';
 import {BehaviorSubject} from 'rxjs';
 import * as $ from 'jquery';
 

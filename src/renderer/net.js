@@ -391,7 +391,7 @@ export class Net {
     /**
      * @param {Node[]} nodes
      * @param {Edge[]} edges
-     * @param {NetPersistor} db
+     * @param {RequestHandler} db
      */
     constructor(nodes, edges, db) {
         /**
@@ -404,7 +404,7 @@ export class Net {
          */
         this.edges = [];
         /**
-         * @type {NetPersistor}
+         * @type {RequestHandler}
          */
         this.db = db;
 
@@ -633,7 +633,7 @@ export class Net {
         this.pushMessage("Creating node with " + groupSelectedNodes.length + " parents");
 
         if (!parentInstance) {
-            const newNode = await Net.newNode(new Node({}));
+            const newNode = await this.db.newNode(new Node({}));
             this.addNodesAndEdges([newNode], []);
             return;
         }
@@ -643,7 +643,7 @@ export class Net {
          */
         const parentNode = parentInstance.node;
         const parentVueInstanceIndex = parentNode.vueInstances.findIndex(v => v.node.id === parentInstance.node.id);
-        const newNode = await Net.newNode({});
+        const newNode = await this.db.newNode({});
         this.addNodesAndEdges([newNode], []);
         // Create the new node, push it into the net, wait for the DOM to update the vue instances and then find the vue instance we're focusing
         await sleep(1);
@@ -658,72 +658,6 @@ export class Net {
      */
     pushMessage(i) {
         this.messages$.next(this.messages$.getValue().concat(i));
-    }
-
-    /**
-     *
-     * @param node
-     * @return {Promise<Node>}
-     */
-    static async newNode(node) {
-        const returned = await axios.post(resolveApiUrl(api, UrlNodes), node);
-        const result = await axios.get(resolveApiUrl(api, UrlNodes, returned.data.id + ''));
-        return new Node(result.data);
-    }
-
-    /**
-     * @param {Edge} edge
-     * @return {Promise<Edge>}
-     */
-    static async newEdge(edge) {
-        const returned = await axios.post(resolveApiUrl(api, UrlEdges), edge);
-        const result = await axios.get(resolveApiUrl(api, UrlEdges, returned.data.id + ''));
-        return new Edge(result.data);
-    }
-
-    /**
-     *
-     * @param {gen_NodeRevision} nodeRevision
-     * @return {Promise<NodeRevision>}
-     */
-    static async persistNodeRevision(nodeRevision) {
-        // If there is an id, delete it
-        delete nodeRevision.id;
-        const result = await axios.post(resolveApiUrl(api, UrlNodeRevisions), nodeRevision);
-        const newNodeRevision = await axios.get(
-            resolveApiUrl(api,
-                UrlUsers,
-                localStorage.getItem(USER_ID),
-                'Nodes',
-                nodeRevision.nodeId + '',
-                'NodeRevisions',
-                result.data.id + '',
-            ));
-
-        const revision = new NodeRevision(newNodeRevision.data);
-        revision.persisted = true;
-        return revision;
-    }
-
-    /**
-     *
-     * @param {EdgeRevision} edgeRevision
-     * @return {Promise<EdgeRevision>}
-     */
-    static async persistEdgeRevision(edgeRevision) {
-        const result = edgeRevision.id ?
-            await axios.put(resolveApiUrl(api, UrlEdgeRevisions, edgeRevision.id + '')) :
-            await axios.post(resolveApiUrl(api, UrlEdgeRevisions), edgeRevision);
-        const revisitionResult = await axios.get(
-            resolveApiUrl(api, UrlUsers,
-                localStorage.getItem(USER_ID),
-                UrlEdges,
-                edgeRevision.edgeId + '',
-                UrlEdgeRevisions,
-                result.data.id + ''));
-
-
-        return new EdgeRevision(revisitionResult.data);
     }
 
     /**
@@ -845,7 +779,7 @@ export class Net {
             const o = node.latestRevision$.getValue();
             o.visible = false;
             this.db.queNodeRevision.push(o);
-            // await Net.persistNodeRevision(o);
+            // await this.db.persistNodeRevision(o);
         }
     }
 
@@ -857,8 +791,8 @@ export class Net {
      * @return {Promise<{node: Node, edges: Edge[]}>}
      */
     static async createNodeAndEdges(text, classification, parents) {
-        const newNode = await Net.newNode();
-        const newNodeRevision = await Net.persistNodeRevision(
+        const newNode = await this.db.newNode();
+        const newNodeRevision = await this.db.persistNodeRevision(
             new gen_NodeRevision({
                 text,
                 classification,
@@ -870,8 +804,8 @@ export class Net {
         if (parents) {
             for (let i = 0; i < parents.length; i++) {
                 const parent = parents[i];
-                const edge = await Net.newEdge({});
-                const revision = await Net.persistEdgeRevision(
+                const edge = await this.db.newEdge({});
+                const revision = await this.db.persistEdgeRevision(
                     {
                         edgeId: edge.id,
                         n1: parent.id,
@@ -886,6 +820,58 @@ export class Net {
     }
 
 }
+export class LoadingObjectList {
+    constructor() {
+        /**
+         *
+         * @type {LoadingObject[]}
+         */
+        this.loadingObjects = [];
+    }
+
+    /**
+     * @param text
+     * @return {LoadingObject}
+     */
+    newLoadingObject(text) {
+        const n = new LoadingObject(text, this);
+        this.loadingObjects.push(n);
+        return n;
+    }
+}
+
+export const LOADING_OBJECT_TIMEOUT = 5000;
+
+export class LoadingObject {
+    /**
+     *
+     * @param text {String}
+     * @param objectList {LoadingObjectList}
+     */
+    constructor(text, objectList) {
+        this.text = text;
+        this.objectList = objectList;
+    }
+    resolve() {
+        this.text = this.text + " success";
+        setTimeout(() => {
+            this.removeSelf();
+        }, LOADING_OBJECT_TIMEOUT)
+    }
+    reject(e) {
+        this.text = this.text + " failed: " + e;
+        setTimeout(() => {
+            this.removeSelf();
+        }, LOADING_OBJECT_TIMEOUT)
+    }
+    removeSelf() {
+        const i =this.objectList.loadingObjects.indexOf(this);
+        if (i >= 0) {
+            this.objectList.loadingObjects.splice(i, 1);
+        }
+    }
+}
+
 
 /**
  * Persists a node, both in localStorage and to an api
@@ -909,7 +895,7 @@ export class Net {
  * @param {NodeRevision} nodeRevision
  */
 
-export class NetPersistor {
+export class RequestHandler {
     /**
      * @param {NodePersistor} persistNode
      * @param {EdgePersistor} persistEdge
@@ -978,6 +964,11 @@ export class NetPersistor {
         wrapperFunc('queNodeRevision', this.queEdgeRevision);
 
         setInterval(() => this.attendQue(this.queNode, this.queEdge, this.queNodeRevision, this.queEdgeRevision), 10000);
+
+        /**
+         * @type {LoadingObjectList}
+         */
+        this.loadingObjectList = new LoadingObjectList();
     }
 
     /**
@@ -1014,6 +1005,110 @@ export class NetPersistor {
             queEdgeRevision.splice(0, 1);
         }
     }
+    
+    /**
+     *
+     * @param node
+     * @return {Promise<Node>}
+     */
+    async newNode(node) {
+        const o = this.loadingObjectList.newLoadingObject("Creating new node");
+        let returned;
+        let result;
+
+        try {
+            returned = await axios.post(resolveApiUrl(api, UrlNodes), node);
+            result = await axios.get(resolveApiUrl(api, UrlNodes, returned.data.id + ''));
+            o.resolve();
+        } catch(e) {
+            o.reject(e);
+            throw e;
+        }
+        return new Node(result.data);
+    }
+
+    /**
+     * @param {Edge} edge
+     * @return {Promise<Edge>}
+     */
+    async newEdge(edge) {
+        const o = this.loadingObjectList.newLoadingObject("Creating new edge");
+        let returned;
+        let result;
+        try {
+            returned = await axios.post(resolveApiUrl(api, UrlEdges), edge);
+            result = await axios.get(resolveApiUrl(api, UrlEdges, returned.data.id + ''));
+            o.resolve();
+        } catch(e) {
+            o.reject(e);
+            throw e;
+        }
+        return new Edge(result.data);
+    }
+
+    /**
+     *
+     * @param {NodeRevision} nodeRevision
+     * @return {Promise<NodeRevision>}
+     */
+    async persistNodeRevision(nodeRevision) {
+        // If there is an id, delete it
+        const o = this.loadingObjectList.newLoadingObject("Creating node revision");
+        let result;
+        let newNodeRevision;
+        let revision;
+        try {
+            delete nodeRevision.id;
+            result = await axios.post(resolveApiUrl(api, UrlNodeRevisions), nodeRevision);
+            newNodeRevision = await axios.get(
+                resolveApiUrl(api,
+                    UrlUsers,
+                    localStorage.getItem(USER_ID),
+                    'Nodes',
+                    nodeRevision.nodeId + '',
+                    'NodeRevisions',
+                    result.data.id + '',
+                ));
+
+            revision = new NodeRevision(newNodeRevision.data);
+            revision.persisted = true;
+            o.resolve();
+        } catch(e) {
+            o.reject(e);
+            throw e;
+        }
+        return revision;
+    }
+
+    /**
+     *
+     * @param {EdgeRevision} edgeRevision
+     * @return {Promise<EdgeRevision>}
+     */
+    async persistEdgeRevision(edgeRevision) {
+        const o = this.loadingObjectList.newLoadingObject("Creating edge revision");
+        let result;
+        let revisitionResult;
+        try {
+            result = edgeRevision.id ?
+                await axios.put(resolveApiUrl(api, UrlEdgeRevisions, edgeRevision.id + '')) :
+                await axios.post(resolveApiUrl(api, UrlEdgeRevisions), edgeRevision);
+            revisitionResult = await axios.get(
+                resolveApiUrl(api, UrlUsers,
+                    localStorage.getItem(USER_ID),
+                    UrlEdges,
+                    edgeRevision.edgeId + '',
+                    UrlEdgeRevisions,
+                    result.data.id + ''));
+            o.resolve();
+        } catch(e) {
+            o.reject(e);
+            throw e;
+        }
+
+
+        return new EdgeRevision(revisitionResult.data);
+    }
 
     // Storage can be solved by observing array push, slice, etc
     // and then setting NODE/NODE_REVISION/EDGE/EDGE_REVISION localStorage keys to the array JSON'd
@@ -1027,7 +1122,6 @@ export class NetPersistor {
 
     // SOLUTION
     // On startup load all que'd changes to the interface, and add them to the que.  Apply them in the order they come in.
-
 }
 
 export const VERTICAL_LINEAR = 'VERTICAL_LINEAR';

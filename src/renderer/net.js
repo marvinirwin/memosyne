@@ -4,6 +4,9 @@ import axios from 'axios';
 import * as $ from 'jquery';
 
 const USER_ID = 'USER_ID';
+const USER_EMAIL = 'USER_EMAIL';
+const access_token = 'access_token';
+
 
 const api = 'api';
 const UrlUsers = 'Users';
@@ -293,7 +296,7 @@ export class NodeRevision extends gen_NodeRevision {
     constructor(o, persisted) {
         super(o);
 
-        /*        this.persisted = persisted;*/
+        this.persisted = persisted;
     }
 }
 
@@ -632,7 +635,6 @@ export class Net {
         if (!parentInstance) {
             const newNode = await Net.newNode(new Node({}));
             this.addNodesAndEdges([newNode], []);
-            debugger;
             return;
         }
 
@@ -685,9 +687,9 @@ export class Net {
      * @return {Promise<NodeRevision>}
      */
     static async persistNodeRevision(nodeRevision) {
-        const result = nodeRevision.id ?
-            await axios.put(resolveApiUrl(api, UrlNodeRevisions, nodeRevision.id + ''), nodeRevision) :
-            await axios.post(resolveApiUrl(api, UrlNodeRevisions), nodeRevision);
+        // If there is an id, delete it
+        delete nodeRevision.id;
+        const result = await axios.post(resolveApiUrl(api, UrlNodeRevisions), nodeRevision);
         const newNodeRevision = await axios.get(
             resolveApiUrl(api,
                 UrlUsers,
@@ -1192,6 +1194,8 @@ export class ViewportManager {
 
 }*/
 
+
+
 export class UserExperience {
     /**
      *
@@ -1199,29 +1203,42 @@ export class UserExperience {
      */
     constructor(net) {
         this.net = net;
-        this.userId = undefined;
-        this.accessToken = undefined;
-        this.email = undefined;
         this.capacityFraction = undefined;
         /**
          *
          * @type {Subject<String>}
          */
-        this.messages$ = new Subject();
+        this.message$ = new BehaviorSubject('');
+    }
+    get accessToken() {
+        return localStorage.getItem(access_token);
+    }
+    set accessToken(v) {
+        localStorage.setItem(access_token, v);
+    }
+    get email() {
+        return localStorage.getItem(USER_EMAIL);
+    }
+    set email(v) {
+        localStorage.setItem(USER_EMAIL, v);
+    }
+    get userId() {
+        return localStorage.getItem(USER_ID);
+    }
+    set userId(v) {
+        localStorage.setItem(USER_ID, v);
     }
     pushMessage(m) {
-        this.messages$.next(m);
+        this.message$.next(m);
     }
 
-    static async isAuthenticated() {
-        if (!localStorage.getItem('access_token')) {
+    async isAuthenticated() {
+        if (!this.accessToken) {
             return false;
         }
-
         try {
-            await axios.get(`${UrlUsers}/${this.userId}/Nodes`, {params: {filter: {limit: 0}}});
+            await axios.get(resolveApiUrl(api, UrlUsers, this.userId, 'nodes'), {params: {filter: {limit: 0}}});
         } catch (e) {
-
             return false;
         }
         return true;
@@ -1235,16 +1252,18 @@ export class UserExperience {
 
     async getUserNet() {
         this.net.pushMessage("Getting user net");
-        const result = await axios.get(resolveApiUrl(api, UrlUsers, localStorage.getItem(USER_ID)), {params: {filter: netFilter}});
+        const result = await axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: netFilter}});
         this.setNetFromResult(result)
     }
 
     async checkLoginGetNodes() {
         this.net.pushMessage("Checking login and getting nodes");
-        const loggedIn = await UserExperience.isAuthenticated();
+        const loggedIn = await this.isAuthenticated();
         if (loggedIn) {
+            this.pushMessage("Querying your net...");
             await this.getUserNet();
         } else {
+            this.pushMessage("Not logged in, loading default network...");
             await this.getDefaultNet();
         }
         await sleep(1)
@@ -1262,13 +1281,15 @@ export class UserExperience {
 
     setNetFromResult(result) {
         this.net.pushMessage("Setting net from results");
-        if (!result || !result.data || !result.data.length) {
+        if (!result || !result.data ) {
             this.net.pushMessage("Bad results, net will be set to empty");
             this.net.nodes = [];
             this.net.edges = [];
             return;
         }
-        const user = result.data[0];
+        const user = result.data.length ?
+            result.data[0] :
+            result.data;
 
         /**
          * @type {Node[]}
@@ -1301,8 +1322,7 @@ export class UserExperience {
      * @param {Number} userId
      * @param {String} email
      */
-    static setLoginResults(accessToken, userId, email) {
-        debugger;
+    setLoginResults(accessToken, userId, email) {
         this.accessToken = accessToken;
         this.userId = userId;
         this.email = email;

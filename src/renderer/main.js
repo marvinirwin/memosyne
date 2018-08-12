@@ -9,7 +9,22 @@ import {debounce} from 'lodash'
 
 import VueRx from 'vue-rx'
 
+
 import {Net, NetPersistor, UserExperience} from './net';
+
+import {
+    Vuetify, // required
+    VApp, // required
+    VSnackbar,
+} from 'vuetify/es5/components';
+
+Vue.use(
+    Vuetify, {
+        components: {
+            VApp,
+            VSnackbar,
+        }
+    });
 
 Vue.use(VueRx);
 

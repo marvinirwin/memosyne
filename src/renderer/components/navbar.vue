@@ -3,12 +3,27 @@
         <div style="position: fixed; background-color: lightblue; opacity: 0.5; height: 20vh; white-space: pre">
             {{messages$ | lastMessages}}
         </div>
-        <div style="top: 20vh;">
-            <input id="input_email" @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
-                   v-model="userExperience.email"
-                   placeholder="email">
-            <input id="input_password" @keydown.enter="userExperience.login(userExperience.email, userExperience.password)" v-model="userExperience.password" type="password" placeholder="password">
-            <button id="btn_login" @click="userExperience.login(userExperience.email, userExperience.password)">Log in</button>
+        <div style="padding-top: 20vh;">
+            <div>
+                <input id="email" @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
+                       v-model="userExperience.email"
+                       placeholder="email">
+                <input id="password"
+                       @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
+                       v-model="userExperience.password" type="password" placeholder="password">
+            </div>
+
+            <div>
+                <div>Loading: {{loadingObjects$ | displayLoadingObject}}</div>
+                <!-- Will this need to be an observable because vue ownt detect changes to localStorage?
+                  Or will it wrap the getters and seeters in its own?-->
+                <div>Logged in: {{userExperience.userId}}</div>
+                <div>Parents: {{groupSelected$.length}}</div>
+                <span>PreEdits: {{preEditSelected$.length}}</span>
+                <span>Edits: {{editSelected$.length}}</span>
+            </div>
+            <button id="btn_login" @click="userExperience.login(userExperience.email, userExperience.password)">Log in
+            </button>
             <button id="btn_logout" @click="userExperience.logout()">Log out</button>
             <div id="div_email">Email: {{userExperience.email}}</div>
             <div id="div_capacity">Capacity Fraction {{userExperience.capacityFraction}}</div>
@@ -17,7 +32,7 @@
         </div>
 
     </div>
-    
+
 </template>
 
 <script>
@@ -26,8 +41,7 @@
         mounted() {
         },
         data() {
-            return {
-            }
+            return {}
         },
         filters: {
             lastMessages(a) {
@@ -42,13 +56,16 @@
                 this.net.createNode(null).catch(e => console.log);
             },
             btnDeleteNodesClicked() {
-/*                Net.handleDeleteNodes();*/
+                /*                Net.handleDeleteNodes();*/
             },
         },
         subscriptions() {
             return {
                 messages$: this.net.messages$,
-                groupSelectedNodes$:
+                groupSelectedNodes$: this.net.groupSelectedNodes$,
+                preEditSelectedNodes$: this.net.preEditSelectedNodes$,
+                editSelectedNodes$: this.net.editSelectedNodes$,
+
             }
         }
     }

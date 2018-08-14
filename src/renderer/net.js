@@ -3,6 +3,8 @@ import {debounceTime, scan} from 'rxjs/operators'
 import axios from 'axios';
 import * as $ from 'jquery';
 
+export const LOADING_OBJECT_TIMEOUT = 10000;
+
 const USER_ID = 'USER_ID';
 const USER_EMAIL = 'USER_EMAIL';
 const access_token = 'access_token';
@@ -682,7 +684,7 @@ export class Net {
             case "Enter":
                 this.pushMessage('Enter pressed, createNode');
                 // If there aren't any nodes selected create a root node
-                await this.createNode();
+                await this.createNode(undefined);
                 break;
             case "Escape":
                 // If you pressed escape then de-select all nodes;
@@ -820,6 +822,7 @@ export class Net {
     }
 
 }
+
 export class LoadingObjectList {
     constructor() {
         /**
@@ -840,7 +843,6 @@ export class LoadingObjectList {
     }
 }
 
-export const LOADING_OBJECT_TIMEOUT = 5000;
 
 export class LoadingObject {
     /**
@@ -871,7 +873,6 @@ export class LoadingObject {
         }
     }
 }
-
 
 /**
  * Persists a node, both in localStorage and to an api
@@ -904,10 +905,10 @@ export class RequestHandler {
      * @param localstorageKey {String}
      */
     constructor(persistNode, persistEdge, persistNodeRevision, persistEdgeRevision, localstorageKey, errorHandlingFunc) {
-        this.persistNode = persistNode;
+/*        this.persistNode = persistNode;
         this.persistEdge = persistEdge;
         this.persistNodeRevision = persistNodeRevision;
-        this.persistEdgeRevision = persistEdgeRevision;
+        this.persistEdgeRevision = persistEdgeRevision;*/
         this.errorHandlingFunc = errorHandlingFunc;
 
         /**
@@ -1017,7 +1018,7 @@ export class RequestHandler {
         let result;
 
         try {
-            returned = await axios.post(resolveApiUrl(api, UrlNodes), node);
+            returned = await axios.post(resolveApiUrl(api, UrlNodes), new gen_Node(node));
             result = await axios.get(resolveApiUrl(api, UrlNodes, returned.data.id + ''));
             o.resolve();
         } catch(e) {
@@ -1036,7 +1037,7 @@ export class RequestHandler {
         let returned;
         let result;
         try {
-            returned = await axios.post(resolveApiUrl(api, UrlEdges), edge);
+            returned = await axios.post(resolveApiUrl(api, UrlEdges), new Edge(edge));
             result = await axios.get(resolveApiUrl(api, UrlEdges, returned.data.id + ''));
             o.resolve();
         } catch(e) {
@@ -1059,7 +1060,7 @@ export class RequestHandler {
         let revision;
         try {
             delete nodeRevision.id;
-            result = await axios.post(resolveApiUrl(api, UrlNodeRevisions), nodeRevision);
+            result = await axios.post(resolveApiUrl(api, UrlNodeRevisions), NodeRevision(nodeRevision));
             newNodeRevision = await axios.get(
                 resolveApiUrl(api,
                     UrlUsers,
@@ -1287,8 +1288,6 @@ export class ViewportManager {
 
 
 }*/
-
-
 
 export class UserExperience {
     /**

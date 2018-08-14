@@ -1,5 +1,5 @@
 <template>
-    <div style="position: relative">
+    <div style="position: relative" @keydown="net.handleHotkeyPress(null, null, $event)">
         <navbar style="position: fixed; background-color: lightblue; opacity: 0.75; height: 20vh; white-space: pre; max-height: 20vh; overflow: auto; width: 100%;"></navbar>
         <node-container style="padding-top: 20vh;"></node-container>
         <v-snackbar v-model="showUserMessages" >

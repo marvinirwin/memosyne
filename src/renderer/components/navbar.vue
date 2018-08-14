@@ -12,10 +12,11 @@
                    v-model="userExperience.password" type="password" placeholder="password">
         </div>
 
+        <div style="white-space: pre;">Loading: {{net.db.loadingObjectList.loadingObjects |
+            displayLoadingObjects}}
+        </div>
+
         <div style="display: flex; flex-flow: column wrap;">
-            <div style="white-space: pre;">Loading: {{net.db.loadingObjectList.loadingObjects |
-                displayLoadingObjects}}
-            </div>
             <!-- Will this need to be an observable because vue ownt detect changes to localStorage?
               Or will it wrap the getters and seeters in its own?-->
             <div>Logged in: {{userExperience.userId}}</div>
@@ -47,7 +48,7 @@
         },
         filters: {
             displayLoadingObjects(a) {
-                return a.join('\r\n');
+                return a.map(a => a.text).join('\r\n');
             },
             lastMessages(a) {
                 const start = a.length - 10;

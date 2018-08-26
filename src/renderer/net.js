@@ -727,6 +727,10 @@ export class Net {
             case "ArrowUp":
                 this.pushMessage('Arrow up pressed, selecting sibling');
                 siblingInstances = vueInstance.$parent.$children;
+                // If we have no siblings don't do anything
+                if (siblingInstances.length === 1) {
+                    return;
+                }
                 // If we have no siblings than we can't go up
                 for (let i = 0; i < siblingInstances.length; i++) {
                     const siblingInstance = siblingInstances[i];
@@ -751,6 +755,9 @@ export class Net {
             case "ArrowDown":
                 this.pushMessage('Arrow down pressed, selecting sibling');
                 siblingInstances = vueInstance.$parent.$children;
+                if (siblingInstances.length === 1) {
+                    return;
+                }
                 // Try to find the index of myself so I can go one down
                 for (let i = 0; i < siblingInstances.length; i++) {
                     const siblingInstance = siblingInstances[i];

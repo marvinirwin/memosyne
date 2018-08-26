@@ -51,13 +51,16 @@
                     this.net.displayRootNodes$.getValue().length &&
                     !this.net.editSelectedNodes$.getValue().length &&
                     !this.net.groupSelectedNodes$.getValue().length &&
-                    !this.net.predEditSelectedNodes$.getValue().length
+                    !this.net.preEditSelectedNodes$.getValue().length
                 ) {
                     this.net.pushMessage("Auto-preEditing node");
                     const focusedNode = this.net.displayRootNodes$.getValue()[0];
                     this.net.setPreEditingNode(focusedNode);
                     setFocusedInstance(this.net, null, focusedNode.vueInstances[0])
                 }
+            });
+            this.net.displayRootNodes$.subscribe(v => {
+                this.net.pushMessage(`Display root nodes new length: ${v.length}`);
             });
             /**
              * @type {Net}

@@ -54,6 +54,12 @@
                     <span>Predecessor edges length: {{predecessorEdges$.length}}</span>
                     <span>Successor edges length: {{successorEdges$.length}}</span>
                 </div>
+                <div>
+                    <div>preEditSelected: {{preEditSelected$}}</div>
+                    <div>editSelected: {{editSelected$}}</div>
+                    <div>groupSelected: {{groupSelected$}}</div>
+                    <div>node id: {{node.id}}</div>
+                </div>
             </div>
         </div>
 
@@ -80,7 +86,7 @@
         destroyed() {
             const i = this.node.vueInstances.indexOf(this);
             if (i === -1) {
-                alert('Destroy hook couldnt find itself inside nodes vue instances!')
+                alert('Destroy hook couldnt find itself inside nodes vue instances!');
                 return;
             }
             this.node.vueInstances.splice(i, 1);
@@ -94,16 +100,12 @@
             const node = this.node;
             node.latestRevision$.subscribe(v => {
                  this.latestRevision = v || {};
+                 this.renderMarkdown();
             });
-            // TODO Let's see if the subscription hook has access to the props
-            // It doesn't look like it can, but there must be a better way
             node.vueInstances.push(this);
-/*            this.$nextTick(this.fitTextArea);*/
             this.$nextTick(this.renderMarkdown);
-/*            this.$store.state.memosyne.nodeElementMap[this.$refs.root] = this;*/
             this.net.nodeElementMap.set(this, this.node);
             this.showMarkdown();
-
         },
         props: {
             node: {
@@ -130,6 +132,7 @@
             showMarkdown() {
                 this.$refs.textarea.style.display = 'none';
                 this.$refs.markdown.style.display = 'block';
+                this.renderMarkdown()
             },
             /**
              *
@@ -170,6 +173,7 @@
                 });
             },
             fitTextArea() {
+                if (this.markdownScrollHeight === 0) return;
                 const tArea = this.$refs.textarea;
                 // const markdown = this.$refs.markdown;
 
@@ -178,6 +182,7 @@
 
                 tArea.style.height = this.markdownScrollHeight + "px";
                 tArea.style.minHeight = '16px';
+                // this.net.pushMessage(`Markdown scroll height ${this.markdownScrollHeight}`);
 
 /*                if (!this.editSelected$) {
                     /!*                    tArea.style.height = markdown.scrollHeight + "px"; *!/

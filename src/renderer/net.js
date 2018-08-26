@@ -384,7 +384,7 @@ export function setFocusedInstance(net, oldInstance, newInstance) {
 
     newInstance.showTextArea();
     newInstance.$refs.textarea.focus();
-    net.removePreEditingNode(newInstance.node);
+    net.removePreEditingNode();
     net.setPreEditingNode(newInstance.node);
     net.groupSelectedNodes$.next([newInstance.node]);
 }
@@ -439,7 +439,6 @@ export class Net {
          */
         this.editSelectedNodes$ = new BehaviorSubject([]);
 
-        this.addNodesAndEdges(nodes, edges);
 
         /**
          * @type {BehaviorSubject<Node[]>}
@@ -450,9 +449,9 @@ export class Net {
          * @type {BehaviorSubject<void>}
          */
         this.recomputeDisplaySignal$.subscribe(n => {
-            this.messages$.next(this.messages$.getValue().concat("Recaculating displayRootNodes"));
+            this.pushMessage("Recaculating displayRootNodes");
             this.displayRootNodes$.next(this.nodes.filter(this.rootNodeFilter));
-        })
+        });
 
         /**
          * @type {Map<Vue, Node>}
@@ -461,10 +460,10 @@ export class Net {
 
         /*        this.viewportManager = new ViewportManager();*/
 
-
         // Take care of the transformation which needs to happen when we apply different kinds of selections to nodes
         // HACK I don't think I should be relying on scan for side effects here
         this.preEditSelectedNodes$.pipe(scan((previousNodes, newNodes) => {
+            // this.pushMessage("Pre edit selected nodes changed");
             /*            this.pushMessage("Scan operator got called");*/
             /**
              *
@@ -487,34 +486,36 @@ export class Net {
             return newNodes;
         })).subscribe();
         this.editSelectedNodes$.pipe(scan((previousNodes, newNodes) => {
-            /*            this.pushMessage("Scan operator got called");*/
+            // this.pushMessage("Edit selected nodes changed");
             /**
              *
              * @param n {Node}
              */
             const previousFunc = (n) => {
                 n.editSelected$.next(false);
-                n.vueInstances.map(v => v.showTextArea());
+                n.vueInstances.map(v => v.showMarkdown());
             };
             /**
              *
              * @param n {Node}
              */
             const newFunc = (n) => {
-                n.preEditSelected$.next(true);
-                n.vueInstances.map(v => v.showMarkdown());
+                n.preEditSelected$.next(false);
+                n.vueInstances.map(v => v.showTextArea());
             };
             previousNodes.map(previousFunc);
             newNodes.map(newFunc);
             return newNodes;
         })).subscribe();
         this.groupSelectedNodes$.pipe(scan((previousNodes, newNodes) => {
+            // this.pushMessage("Group selected nodes got changed");
             /**
              *
              * @param n {Node}
              */
             const previousFunc = (n) => {
                 n.groupSelected$.next(false);
+                n.vueInstances.map(v => v.showMarkdown());
             };
             /**
              *
@@ -527,6 +528,8 @@ export class Net {
             newNodes.map(newFunc);
             return newNodes;
         })).subscribe();
+
+        this.addNodesAndEdges(nodes, edges);
     }
 
     /**
@@ -572,7 +575,7 @@ export class Net {
      * @param n {Node}
      */
     setEditingNode(n) {
-        this.messages$.next(this.messages$.getValue().concat('Setting editing node'));
+        // this.pushMessage('Setting editing node');
         /*        this.groupSelectedNodes$.getValue().map(n => n.groupSelected$.next(false));
                 this.editSelectedNodes$.getValue().map(n => {
                     n.editSelected$.next(false);
@@ -617,14 +620,9 @@ export class Net {
         this.preEditSelectedNodes$.next([n]);
     }
 
-    /**
-     * @param n {Node}
-     */
-    removePreEditingNode(n) {
-        this.pushMessage('Removing pre-editing node');
+    removePreEditingNode() {
+        // this.pushMessage('Removing pre-editing node');
         this.preEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
-        n.preEditSelected$.next(false);
-        this.preEditSelectedNodes$.next([n]);
     }
 
     /**
@@ -634,23 +632,33 @@ export class Net {
         const groupSelectedNodes = this.groupSelectedNodes$.getValue();
         this.pushMessage("Creating node with " + groupSelectedNodes.length + " parents");
 
-        if (!parentInstance) {
-            const newNode = await this.db.newNode(new Node({}));
-            this.addNodesAndEdges([newNode], []);
-            return;
-        }
-
         /**
          * @type {Node}
          */
-        const parentNode = parentInstance.node;
-        const parentVueInstanceIndex = parentNode.vueInstances.findIndex(v => v.node.id === parentInstance.node.id);
+/*        const parentNode = parentInstance.node;
+        const parentVueInstanceIndex = parentNode.vueInstances.findIndex(v => v.node.id === parentInstance.node.id);*/
         const newNode = await this.db.newNode({});
-        this.addNodesAndEdges([newNode], []);
+        // Here I dangerously assume that all nodes coming from the server will have a revision, which is done in an operation hook.
+        newNode.nodeRevisions$.getValue()[0].visible = true;
+        const newEdges = [];
+        for (let i = 0; i < groupSelectedNodes.length; i++) {
+            const groupSelectedNode = groupSelectedNodes[i];
+            const newEdge = await this.db.newEdge({});
+            const newRevision = await this.db.newEdgeRevision(
+                new gen_EdgeRevision({n1: groupSelectedNode.id, n2: newNode.id, edgeId: newEdge.id}));
+            newRevision.visible = true;
+
+
+            newEdge.edgeRevisions$.next([newRevision]);
+            newEdges.push(newEdge);
+        }
+
+
+        this.addNodesAndEdges([newNode], newEdges);
         // Create the new node, push it into the net, wait for the DOM to update the vue instances and then find the vue instance we're focusing
-        await sleep(1);
+/*        await sleep(1);
         const newParentInstance = parentNode.vueInstances[parentVueInstanceIndex];
-        const childInstance = newParentInstance.$children.find(instance => instance.node.id === newNode);
+        const childInstance = newParentInstance.$children.find(instance => instance.node.id === newNode);*/
         // setFocusedInstance(childInstance);
         // Maybe I should reset the focuses and add the new, focused instance to preEditSelected$
     }
@@ -781,7 +789,7 @@ export class Net {
             const o = node.latestRevision$.getValue();
             o.visible = false;
             this.db.queNodeRevision.push(o);
-            // await this.db.persistNodeRevision(o);
+            // await this.db.newNodeRevision(o);
         }
     }
 
@@ -794,7 +802,7 @@ export class Net {
      */
     static async createNodeAndEdges(text, classification, parents) {
         const newNode = await this.db.newNode();
-        const newNodeRevision = await this.db.persistNodeRevision(
+        const newNodeRevision = await this.db.newNodeRevision(
             new gen_NodeRevision({
                 text,
                 classification,
@@ -807,7 +815,7 @@ export class Net {
             for (let i = 0; i < parents.length; i++) {
                 const parent = parents[i];
                 const edge = await this.db.newEdge({});
-                const revision = await this.db.persistEdgeRevision(
+                const revision = await this.db.newEdgeRevision(
                     {
                         edgeId: edge.id,
                         n1: parent.id,
@@ -854,20 +862,23 @@ export class LoadingObject {
         this.text = text;
         this.objectList = objectList;
     }
+
     resolve() {
         this.text = this.text + " success";
         setTimeout(() => {
             this.removeSelf();
         }, LOADING_OBJECT_TIMEOUT)
     }
+
     reject(e) {
         this.text = this.text + " failed: " + e;
         setTimeout(() => {
             this.removeSelf();
         }, LOADING_OBJECT_TIMEOUT)
     }
+
     removeSelf() {
-        const i =this.objectList.loadingObjects.indexOf(this);
+        const i = this.objectList.loadingObjects.indexOf(this);
         if (i >= 0) {
             this.objectList.loadingObjects.splice(i, 1);
         }
@@ -905,10 +916,10 @@ export class RequestHandler {
      * @param localstorageKey {String}
      */
     constructor(persistNode, persistEdge, persistNodeRevision, persistEdgeRevision, localstorageKey, errorHandlingFunc) {
-/*        this.persistNode = persistNode;
-        this.persistEdge = persistEdge;
-        this.persistNodeRevision = persistNodeRevision;
-        this.persistEdgeRevision = persistEdgeRevision;*/
+        /*        this.persistNode = persistNode;
+                this.persistEdge = persistEdge;
+                this.newNodeRevision = newNodeRevision;
+                this.newEdgeRevision = newEdgeRevision;*/
         this.errorHandlingFunc = errorHandlingFunc;
 
         /**
@@ -964,7 +975,7 @@ export class RequestHandler {
         this.queEdgeRevision = [];
         wrapperFunc('queNodeRevision', this.queEdgeRevision);
 
-        setInterval(() => this.attendQue(this.queNode, this.queEdge, this.queNodeRevision, this.queEdgeRevision), 10000);
+        setInterval(() => this.attendQue(this.queNode, this.queEdge, this.queNodeRevision, this.queEdgeRevision), 5000);
 
         /**
          * @type {LoadingObjectList}
@@ -983,30 +994,30 @@ export class RequestHandler {
     async attendQue(queNode, queEdge, queNodeRevision, queEdgeRevision) {
         while (queNode.length) {
             const queNodeElement = queNode[0];
-            await this.persistNode(queNodeElement).catch(this.errorHandlingFunc);
+            await this.newNode(queNodeElement).catch(this.errorHandlingFunc);
             queNodeElement.persisted = true;
             queNode.splice(0, 1);
         }
         while (queEdge.length) {
             const queEdgeElement = queEdge[0];
-            await this.persistEdge(queEdgeElement);
+            await this.newEdge(queEdgeElement);
             queEdgeElement.persisted = true;
             queEdge.splice(0, 1);
         }
         while (queNodeRevision.length) {
             const queNodeRevisionElement = queNodeRevision[0];
-            await this.persistNodeRevision(queNodeRevisionElement).catch(this.errorHandlingFunc);
+            await this.newNodeRevision(queNodeRevisionElement).catch(this.errorHandlingFunc);
             queNodeRevisionElement.persisted = true;
             queNodeRevision.splice(0, 1);
         }
         while (queEdgeRevision.length) {
             const queEdgeRevisionElement = queEdgeRevision[0];
-            await this.persistEdgeRevision(queEdgeRevisionElement).catch(this.errorHandlingFunc);
+            await this.newEdgeRevision(queEdgeRevisionElement).catch(this.errorHandlingFunc);
             queEdgeRevisionElement.persisted = true;
             queEdgeRevision.splice(0, 1);
         }
     }
-    
+
     /**
      *
      * @param node
@@ -1018,13 +1029,15 @@ export class RequestHandler {
         let result;
 
         try {
-            returned = await axios.post(resolveApiUrl(api, UrlNodes), new gen_Node(node));
-            result = await axios.get(resolveApiUrl(api, UrlNodes, returned.data.id + ''));
+            result = await axios.post(resolveApiUrl(api, UrlNodes), new gen_Node(node));
+            // Maybe I can just use these results, or maybe I will have to use VNodes, who knows yet.
+            // result = await axios.get(resolveApiUrl(api, UrlVNo, returned.data.id + ''));
             o.resolve();
-        } catch(e) {
+        } catch (e) {
             o.reject(e);
             throw e;
         }
+        debugger;
         return new Node(result.data);
     }
 
@@ -1037,10 +1050,10 @@ export class RequestHandler {
         let returned;
         let result;
         try {
-            returned = await axios.post(resolveApiUrl(api, UrlEdges), new Edge(edge));
+            returned = await axios.post(resolveApiUrl(api, UrlEdges), new gen_Edge(edge));
             result = await axios.get(resolveApiUrl(api, UrlEdges, returned.data.id + ''));
             o.resolve();
-        } catch(e) {
+        } catch (e) {
             o.reject(e);
             throw e;
         }
@@ -1052,7 +1065,7 @@ export class RequestHandler {
      * @param {NodeRevision} nodeRevision
      * @return {Promise<NodeRevision>}
      */
-    async persistNodeRevision(nodeRevision) {
+    async newNodeRevision(nodeRevision) {
         // If there is an id, delete it
         const o = this.loadingObjectList.newLoadingObject("Creating node revision");
         let result;
@@ -1060,7 +1073,7 @@ export class RequestHandler {
         let revision;
         try {
             delete nodeRevision.id;
-            result = await axios.post(resolveApiUrl(api, UrlNodeRevisions), NodeRevision(nodeRevision));
+            result = await axios.post(resolveApiUrl(api, UrlNodeRevisions), new gen_NodeRevision(nodeRevision));
             newNodeRevision = await axios.get(
                 resolveApiUrl(api,
                     UrlUsers,
@@ -1074,7 +1087,8 @@ export class RequestHandler {
             revision = new NodeRevision(newNodeRevision.data);
             revision.persisted = true;
             o.resolve();
-        } catch(e) {
+        } catch (e) {
+            console.log(e);
             o.reject(e);
             throw e;
         }
@@ -1083,10 +1097,10 @@ export class RequestHandler {
 
     /**
      *
-     * @param {EdgeRevision} edgeRevision
+     * @param {gen_EdgeRevision} edgeRevision
      * @return {Promise<EdgeRevision>}
      */
-    async persistEdgeRevision(edgeRevision) {
+    async newEdgeRevision(edgeRevision) {
         const o = this.loadingObjectList.newLoadingObject("Creating edge revision");
         let result;
         let revisitionResult;
@@ -1102,7 +1116,7 @@ export class RequestHandler {
                     UrlEdgeRevisions,
                     result.data.id + ''));
             o.resolve();
-        } catch(e) {
+        } catch (e) {
             o.reject(e);
             throw e;
         }
@@ -1303,24 +1317,31 @@ export class UserExperience {
          */
         this.message$ = new BehaviorSubject('');
     }
+
     get accessToken() {
         return localStorage.getItem(access_token);
     }
+
     set accessToken(v) {
         localStorage.setItem(access_token, v);
     }
+
     get email() {
         return localStorage.getItem(USER_EMAIL);
     }
+
     set email(v) {
         localStorage.setItem(USER_EMAIL, v);
     }
+
     get userId() {
         return localStorage.getItem(USER_ID);
     }
+
     set userId(v) {
         localStorage.setItem(USER_ID, v);
     }
+
     pushMessage(m) {
         this.message$.next(m);
     }
@@ -1374,7 +1395,7 @@ export class UserExperience {
 
     setNetFromResult(result) {
         this.net.pushMessage("Setting net from results");
-        if (!result || !result.data ) {
+        if (!result || !result.data) {
             this.net.pushMessage("Bad results, net will be set to empty");
             this.net.nodes = [];
             this.net.edges = [];

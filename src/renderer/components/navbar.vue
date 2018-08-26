@@ -1,8 +1,8 @@
 <template>
     <div style="display: flex;">
-        <div>
+<!--        <div style="font-size: 10px; height: fit-content; position: absolute; background-color: ">
             {{messages$ | lastMessages}}
-        </div>
+        </div>-->
         <div>
             <input id="email" @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
                    v-model="userExperience.email"
@@ -39,6 +39,7 @@
 </template>
 
 <script>
+    import {map} from 'rxjs/operators';
     export default {
         name: "navbar",
         mounted() {
@@ -51,7 +52,7 @@
                 return a.map(a => a.text).join('\r\n');
             },
             lastMessages(a) {
-                const start = a.length - 10;
+                const start = a.length - 20;
                 return start < 0 ?
                     a.join('\r\n') :
                     a.slice(start).join('\r\n');
@@ -68,6 +69,14 @@
         subscriptions() {
             return {
                 messages$: this.net.messages$,
+                lastMessages$: this.net.messages$.pipe(
+                    map(a => {
+                        const start = a.length - 10;
+                            return start < 0 ?
+                            a :
+                            a.slice(start);
+                    }
+                )),
                 groupSelectedNodes$: this.net.groupSelectedNodes$,
                 preEditSelectedNodes$: this.net.preEditSelectedNodes$,
                 editSelectedNodes$: this.net.editSelectedNodes$,

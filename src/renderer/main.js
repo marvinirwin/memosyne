@@ -35,8 +35,8 @@ Vue.config.productionTip = false;
 const persistor = new RequestHandler(
     (node) => Net.newNode(node).then(() => node.persisted = true),
     (edge) => Net.newEdge(edge).then(() => edge.persisted = true),
-    (nodeRevision) => Net.persistNodeRevision(nodeRevision).then(() => nodeRevision.persisted = true),
-    (edgeRevision) => Net.persistEdgeRevision(edgeRevision).then(() => edgeRevision.persisted = true),
+    (nodeRevision) => Net.newNodeRevision(nodeRevision).then(() => nodeRevision.persisted = true),
+    (edgeRevision) => Net.newEdgeRevision(edgeRevision).then(() => edgeRevision.persisted = true),
     "",
     /**
      *
@@ -67,5 +67,5 @@ new Vue({
     components: {App},
     router,
     store,
-    template: '<App/>'});
-
+    template: '<App/>'
+}).$mount('#app');

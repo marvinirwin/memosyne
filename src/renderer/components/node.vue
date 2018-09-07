@@ -168,6 +168,9 @@
                 // Record the scrollHeight of our markdown when we can,
                 // so that when we show the text area it has an idea of how big to make itself
                 setTimeout(() => {
+                    if (this.node.visible) {
+
+                    }
                     this.markdownScrollHeight = this.$refs.markdown.scrollHeight;
                     this.fitTextArea();
                 });

@@ -9,12 +9,11 @@ const USER_ID = 'USER_ID';
 const USER_EMAIL = 'USER_EMAIL';
 const access_token = 'access_token';
 
-
 const api = 'api';
 const UrlUsers = 'Users';
 const UrlDefaultUser = 'DefaultUsers';
 const UrlNodes = 'Nodes';
-/*const UrlVNodes = 'VNodes';*/
+const UrlVNodes = 'VNodes';
 const UrlEdges = 'Edges';
 const UrlNodeRevisions = 'NodeRevisions';
 const UrlEdgeRevisions = 'EdgeRevisions';
@@ -52,6 +51,17 @@ const netFilter = {
             },
         },
     ],
+};
+const singleNodeFilter = {
+    include: [
+        {
+            relation: 'nodeRevisions',
+            scope: {
+                limit: 1,
+                order: ['createdTimestamp DESC'],
+            },
+        }
+    ]
 };
 
 export class gen_Edge {
@@ -635,8 +645,8 @@ export class Net {
         /**
          * @type {Node}
          */
-/*        const parentNode = parentInstance.node;
-        const parentVueInstanceIndex = parentNode.vueInstances.findIndex(v => v.node.id === parentInstance.node.id);*/
+        /*        const parentNode = parentInstance.node;
+                const parentVueInstanceIndex = parentNode.vueInstances.findIndex(v => v.node.id === parentInstance.node.id);*/
         const newNode = await this.db.newNode({});
         // Here I dangerously assume that all nodes coming from the server will have a revision, which is done in an operation hook.
         newNode.nodeRevisions$.getValue()[0].visible = true;
@@ -652,13 +662,11 @@ export class Net {
             newEdge.edgeRevisions$.next([newRevision]);
             newEdges.push(newEdge);
         }
-
-
         this.addNodesAndEdges([newNode], newEdges);
         // Create the new node, push it into the net, wait for the DOM to update the vue instances and then find the vue instance we're focusing
-/*        await sleep(1);
-        const newParentInstance = parentNode.vueInstances[parentVueInstanceIndex];
-        const childInstance = newParentInstance.$children.find(instance => instance.node.id === newNode);*/
+        /*        await sleep(1);
+                const newParentInstance = parentNode.vueInstances[parentVueInstanceIndex];
+                const childInstance = newParentInstance.$children.find(instance => instance.node.id === newNode);*/
         // setFocusedInstance(childInstance);
         // Maybe I should reset the focuses and add the new, focused instance to preEditSelected$
     }
@@ -713,7 +721,7 @@ export class Net {
                 break;
             case "ArrowRight":
                 this.pushMessage('Arrow left pressed, selecting child');
-                let children = vueInstance.$children;
+                let children = vueInstance.$children.filter(v => v.node && v.node.visible);
                 let childrenLength = children.length;
                 if (!childrenLength) {
                     return;
@@ -726,7 +734,7 @@ export class Net {
                 break;
             case "ArrowUp":
                 this.pushMessage('Arrow up pressed, selecting sibling');
-                siblingInstances = vueInstance.$parent.$children;
+                siblingInstances = vueInstance.$parent.$children.filter(v => v.node && v.node.visible);
                 // If we have no siblings don't do anything
                 if (siblingInstances.length === 1) {
                     return;
@@ -754,7 +762,7 @@ export class Net {
                 break;
             case "ArrowDown":
                 this.pushMessage('Arrow down pressed, selecting sibling');
-                siblingInstances = vueInstance.$parent.$children;
+                siblingInstances = vueInstance.$parent.$children.filter(v => v.node && v.node.visible);
                 if (siblingInstances.length === 1) {
                     return;
                 }
@@ -788,14 +796,17 @@ export class Net {
      * @return {Promise<void>}
      */
     async addNodeHideToQue(nodes) {
+        debugger;
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
             /**
              * @type {NodeRevision}
              */
-            const o = node.latestRevision$.getValue();
-            o.visible = false;
-            this.db.queNodeRevision.push(o);
+            const latestRevision = node.latestRevision$.getValue();
+            latestRevision.visible = false;
+            const o = new gen_NodeRevision(latestRevision);
+            delete o.createdTimestamp;
+            this.db.queNodeRevision.push(new NodeRevision(o));
             // await this.db.newNodeRevision(o);
         }
     }
@@ -857,7 +868,6 @@ export class LoadingObjectList {
         return n;
     }
 }
-
 
 export class LoadingObject {
     /**
@@ -1026,25 +1036,23 @@ export class RequestHandler {
     }
 
     /**
-     *
      * @param node
      * @return {Promise<Node>}
      */
     async newNode(node) {
         const o = this.loadingObjectList.newLoadingObject("Creating new node");
-        let returned;
         let result;
 
         try {
             result = await axios.post(resolveApiUrl(api, UrlNodes), new gen_Node(node));
-            // Maybe I can just use these results, or maybe I will have to use VNodes, who knows yet.
-            // result = await axios.get(resolveApiUrl(api, UrlVNo, returned.data.id + ''));
+            // Since we're creating a node we are definitely not
+            result = await axios.get(resolveApiUrl(api, UrlVNodes, result.data.id), {params: {filter: singleNodeFilter}});
+            debugger;
             o.resolve();
         } catch (e) {
             o.reject(e);
             throw e;
         }
-        debugger;
         return new Node(result.data);
     }
 

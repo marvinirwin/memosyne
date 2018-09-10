@@ -18,7 +18,6 @@
 </script>
 
 <style>
-
     /* CSS */
     *, *:focus {
         outline: none;
@@ -76,9 +75,9 @@
         color: darkred;
     }
 
-    textarea:focus {
+/*    textarea:focus {
         background-color: red;
-    }
+    }*/
 
 
 
@@ -277,7 +276,7 @@
         margin: 0 auto;
 /*        max-width: 48rem;*/
         line-height: 1.45;
-        padding: .25rem;
+/*        padding: .25rem;*/
     }
 
     h1,

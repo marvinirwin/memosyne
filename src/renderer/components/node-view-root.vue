@@ -1,13 +1,20 @@
 <template>
     <div style="position: relative" @keydown="net.handleHotkeyPress(null, null, $event)">
-        <div style="display: flex; flex-flow: column nowrap; position: fixed; background-color: lightgreen; z-index: 1; opacity: 0.5;" v-if="debug">
+        <div style="display: flex; flex-flow: column nowrap; position: fixed; background-color: lightgreen; z-index: 1; opacity: 0.5;"
+             v-if="debug">
             <div v-for="message in lastMessages$" style="margin: 0; padding: 0;">
                 {{message}}
             </div>
         </div>
-        <navbar style="position: fixed; background-color: lightblue; opacity: 0.75; height: 20vh; white-space: pre; max-height: 20vh; overflow: auto; width: 100%;"></navbar>
+        <navbar style="
+        position: fixed;
+        height: 20vh;
+        white-space: pre;
+        max-height: 20vh;
+        overflow: auto;
+        width: 100%;"></navbar>
         <node-container style="padding-top: 20vh;"></node-container>
-        <v-snackbar v-model="showUserMessages" >
+        <v-snackbar v-model="showUserMessages">
             <div v-for="userMessage in userMessages">
                 {{userMessage}}
             </div>

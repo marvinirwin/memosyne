@@ -18,6 +18,7 @@
 </script>
 
 <style>
+
     /* CSS */
     *, *:focus {
         outline: none;
@@ -45,6 +46,11 @@
 
     .node > .nucleus:not(.persisted) {
         border-color: red;
+    }
+
+    .nucleus:not(.editSelected){
+        max-height: 30vh;
+        overflow: auto;
     }
 
     .node-textarea {

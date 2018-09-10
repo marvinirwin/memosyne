@@ -511,7 +511,10 @@ export class Net {
              */
             const newFunc = (n) => {
                 n.preEditSelected$.next(false);
-                n.vueInstances.map(v => v.showTextArea());
+                n.editSelected$.next(true);
+                n.vueInstances.map(v => {
+                    v.showTextArea();
+                });
             };
             previousNodes.map(previousFunc);
             newNodes.map(newFunc);
@@ -634,6 +637,7 @@ export class Net {
         // this.pushMessage('Removing pre-editing node');
         this.preEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
     }
+
 
     /**
      * @param parentInstance {Vue}

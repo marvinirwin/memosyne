@@ -28,7 +28,7 @@ Vue.use(
 
 Vue.use(VueRx);
 
-// if (!process.env.IS_WEB) Vue.use(require('vue-electron'));
+if (!process.env.IS_WEB) Vue.use(require('vue-electron'));
 Vue.http = Vue.prototype.$http = axios;
 Vue.config.productionTip = false;
 
@@ -55,8 +55,9 @@ userExperience.checkLoginGetNodes().catch(e => console.log(e));
 Vue.mixin({
     data() {
         return {
-                net,
-                userExperience
+            net,
+            userExperience,
+            debug: false,
         }
     }
 });

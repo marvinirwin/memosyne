@@ -128,6 +128,7 @@
             showTextArea() {
                 this.$refs.textarea.style.display = 'block';
                 this.$refs.markdown.style.display = 'none';
+                this.fitTextArea()
             },
             showMarkdown() {
                 this.$refs.textarea.style.display = 'none';
@@ -147,7 +148,8 @@
                         (event.key === 'e' && event.ctrlKey)) {
                         this.net.handleHotkeyPress(this, this.node, event);
                     }else {
-                        this.node.net.removePreEditingNode(this.node);
+                        this.node.net.editSelectedNodes$.next([this.node]);
+                        // this.node.net.removePreEditingNode(this.node);
                     }
                 }
                 if (event.key === "Escape") {

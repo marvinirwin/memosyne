@@ -1,6 +1,6 @@
 <template>
     <div style="position: relative" @keydown="net.handleHotkeyPress(null, null, $event)">
-        <div style="display: flex; flex-flow: column nowrap; position: fixed; background-color: lightgreen; z-index: 1; opacity: 0.5;">
+        <div style="display: flex; flex-flow: column nowrap; position: fixed; background-color: lightgreen; z-index: 1; opacity: 0.5;" v-if="debug">
             <div v-for="message in lastMessages$" style="margin: 0; padding: 0;">
                 {{message}}
             </div>

@@ -6,12 +6,9 @@
 
 <script>
     require('materialize-css/dist/css/materialize.css');
-
-
     export default {
         name: 'memosyne',
-        methods: {
-        },
+        methods: {},
         mounted() {
         }
     }
@@ -22,15 +19,9 @@
     *, *:focus {
         outline: none;
     }
+
     .nucleus {
         border: solid black;
-    }
-
-    .node {
-        display: flex;
-    }
-
-    .node > .nucleus {
         height: fit-content;
         display: flex;
         flex-flow: column nowrap;
@@ -39,53 +30,46 @@
         max-width: 49vw;
     }
 
-    .node > .nucleus.persisted {
+    .nucleus.persisted {
         border-color: green;
     }
 
-    .node > .nucleus:not(.persisted) {
+    .nucleus:not(.persisted) {
         border-color: red;
     }
 
-    .nucleus:not(.editSelected){
-        max-height: 30vh;
-        overflow: auto;
-    }
 
     .node-textarea {
         font-size: 1rem;
         min-height: 20px;
     }
+
     .node-markdown {
         flex: 1;
     }
 
-    .node-children {
-        display: flex;
-        flex-flow: column nowrap;
-    }
 
     .groupSelected {
         background-color: lightblue;
     }
+
     .preEditSelected {
         color: darkblue;
     }
+
     .editSelected {
         color: darkred;
     }
 
-/*    textarea:focus {
-        background-color: red;
-    }*/
+    /*    textarea:focus {
+            background-color: red;
+        }*/
 
-
-
-/*    .selected {
-        -webkit-box-shadow: 0 0.05em 0.2em 0 rgba(0, 0, 0, 0.2);
-        box-shadow: 0 0.05em 0.2em 0 rgba(0, 0, 0, 0.2);
-        background: #7fa0eb;
-    }*/
+    /*    .selected {
+            -webkit-box-shadow: 0 0.05em 0.2em 0 rgba(0, 0, 0, 0.2);
+            box-shadow: 0 0.05em 0.2em 0 rgba(0, 0, 0, 0.2);
+            background: #7fa0eb;
+        }*/
 
     @media print {
         *,
@@ -149,7 +133,7 @@
 
     pre,
     code {
-/*        font-family: Menlo, Monaco, "Courier New", monospace;*/
+        /*        font-family: Menlo, Monaco, "Courier New", monospace;*/
     }
 
     pre {
@@ -274,9 +258,9 @@
         font-family: 'Open Sans Condensed', sans-serif;
         font-weight: 300;
         margin: 0 auto;
-/*        max-width: 48rem;*/
+        /*        max-width: 48rem;*/
         line-height: 1.45;
-/*        padding: .25rem;*/
+        /*        padding: .25rem;*/
     }
 
     h1,
@@ -311,4 +295,4 @@
      * Creator: Simon R.
      */
 
-    </style>
+</style>

@@ -13,24 +13,26 @@
              'z-depth-4': groupSelected$,
              persisted: latestRevision.persisted,
              }"
+             @mouseleave="scrollUpElement($refs.nucleus)"
              tabindex="99"
              ref="nucleus"
              @click="handleClick($event)"
         >
-<!--             @click="setSelectedNodes({nodes: [node]})"-->
+            <!--             @click="setSelectedNodes({nodes: [node]})"-->
             <textarea
                     ref="textarea"
+                    v-show=""
                     class="node-textarea"
                     v-model="node.text"
                     @keydown.stop="handleTextboxPress($event)"
             ></textarea>
 
             <div
-                 class="node-markdown"
-                 ref="markdown"
-                 v-html="markdown"
+                    class="node-markdown"
+                    ref="markdown"
+                    v-html="markdown"
             >
-<!--                @click="setSelectedNodes({nodes: [node]})"-->
+                <!--                @click="setSelectedNodes({nodes: [node]})"-->
             </div>
             <!--                    @click="setSelectedNodes({nodes: [node]})"-->
             <input
@@ -38,14 +40,14 @@
                     placeholder="classification"
                     v-model="node.classification">
 
-            <div class="selectable">
+            <div class="selectable" v-if="debug">
                 <div ref="selectEl">
                     Select
                 </div>
             </div>
             <div class="node-attrs"
                  ref="attrs"
-                 tabindex="0">
+                 tabindex="0" v-if="debug">
                 <div>
                     <span>Predecessor length: {{node.predecessorNodes.length}}</span>
                     <span>Successor length: {{node.successorNodes.length}}</span>
@@ -70,6 +72,8 @@
                     :ref="'child' + index"
                     :key="child.id"
                     :node="child"
+                    :colorList="colorList"
+                    :colorIndex="calcChildIndex()"
                     :siblings="node.successorNodes.filter(n => n !== child)"
             ></node>
         </div>
@@ -79,7 +83,7 @@
 <script>
     import {debounce} from 'lodash';
     import {mapMutations, mapActions} from 'vuex';
-    import {Node} from '../net.js';
+    import {Node, scrollUpElement} from '../net.js';
 
     export default {
         name: "node",
@@ -94,18 +98,23 @@
             // delete this.$store.state.memosyne.nodeElementMap[this.$refs.root];
         },
         mounted() {
+            this.$refs.nucleus.style.backgroundColor = this.colorList[this.colorIndex];
+            debugger;
             /**
              * @type Node
              */
             const node = this.node;
             node.latestRevision$.subscribe(v => {
-                 this.latestRevision = v || {};
-                 this.renderMarkdown();
+                this.latestRevision = v || {};
+                this.renderMarkdown();
             });
             node.vueInstances.push(this);
             this.$nextTick(this.renderMarkdown);
             this.net.nodeElementMap.set(this, this.node);
             this.showMarkdown();
+            this.scrollUpMarkdown = debounce(() => {
+                // Whatever javascript scrolls up this.$refs.markdown
+            }, 500);
         },
         props: {
             node: {
@@ -114,6 +123,14 @@
             },
             siblings: {
                 type: Array,
+                required: true
+            },
+            colorList: {
+                type: Array,
+                required: true
+            },
+            colorIndex: {
+                type: Number,
                 required: true
             }
         },
@@ -125,12 +142,27 @@
             }
         },
         methods: {
+            calcChildIndex() {
+                return (this.colorIndex + 1) > this.colorList.length - 1 ?
+                    0 :
+                    this.colorIndex + 1
+                    ;
+            },
+            /**
+             * e {ScrollEvent}
+             **/
+            handleScroll(e) {
+
+            },
             showTextArea() {
                 this.$refs.textarea.style.display = 'block';
                 this.$refs.markdown.style.display = 'none';
                 this.fitTextArea()
             },
             showMarkdown() {
+                if (this.node.text) {
+                    this.showTextArea();
+                }
                 this.$refs.textarea.style.display = 'none';
                 this.$refs.markdown.style.display = 'block';
                 this.renderMarkdown()
@@ -147,7 +179,7 @@
                         event.key === "ArrowRight" ||
                         (event.key === 'e' && event.ctrlKey)) {
                         this.net.handleHotkeyPress(this, this.node, event);
-                    }else {
+                    } else {
                         this.node.net.editSelectedNodes$.next([this.node]);
                         // this.node.net.removePreEditingNode(this.node);
                     }
@@ -182,20 +214,20 @@
                 const tArea = this.$refs.textarea;
                 // const markdown = this.$refs.markdown;
 
-/*                const nucleus = this.$refs.nucleus;
-                const hLimit = window.innerHeight * 0.75;*/
+                /*                const nucleus = this.$refs.nucleus;
+                                const hLimit = window.innerHeight * 0.75;*/
 
                 tArea.style.height = this.markdownScrollHeight + "px";
                 tArea.style.minHeight = '16px';
                 // this.net.pushMessage(`Markdown scroll height ${this.markdownScrollHeight}`);
 
-/*                if (!this.editSelected$) {
-                    /!*                    tArea.style.height = markdown.scrollHeight + "px"; *!/
-                } else {
-                    tArea.style.height = markdown.scrollHeight + "px";
-                    tArea.style.minHeight = '16px';
-                    /!*                    tArea.style.height = markdown.scrollHeight + "px"; *!/
-                }*/
+                /*                if (!this.editSelected$) {
+                                    /!*                    tArea.style.height = markdown.scrollHeight + "px"; *!/
+                                } else {
+                                    tArea.style.height = markdown.scrollHeight + "px";
+                                    tArea.style.minHeight = '16px';
+                                    /!*                    tArea.style.height = markdown.scrollHeight + "px"; *!/
+                                }*/
             },
             focusTextarea() {
                 this.$refs.textarea.focus();
@@ -203,15 +235,15 @@
             hotkey(event) {
                 this.net.handleHotkeyPress(this, this.node, event);
             },
+            scrollUpElement,
         },
-        computed: {
-        },
+        computed: {},
         watch: {
-/*            selected() {
-                if (!this.selected) {
-                    this.renderMarkdown();
-                }
-            }*/
+            /*            selected() {
+                            if (!this.selected) {
+                                this.renderMarkdown();
+                            }
+                        }*/
         },
         subscriptions() {
             /**

@@ -1,22 +1,30 @@
 <template>
-    <div style="display: flex;">
-<!--        <div style="font-size: 10px; height: fit-content; position: absolute; background-color: ">
-            {{messages$ | lastMessages}}
-        </div>-->
-        <div>
-            <input id="email" @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
-                   v-model="userExperience.email"
-                   placeholder="email">
-            <input id="password"
-                   @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
-                   v-model="userExperience.password" type="password" placeholder="password">
+    <div style="display: flex; justify-content: center;">
+        <!--        <div style="font-size: 10px; height: fit-content; position: absolute; background-color: ">
+                    {{messages$ | lastMessages}}
+                </div>-->
+        <div style="flex: 1;">
+            <div>
+                <input id="email" @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
+                       v-model="userExperience.email"
+                       placeholder="email">
+            </div>
+            <div>
+                <input id="password"
+                       @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
+                       v-model="userExperience.password" type="password" placeholder="password">
+            </div>
+        </div>
+        <div style="display: flex; flex-flow: column nowrap; ">
+            <button id="btn_login" @click="userExperience.login(userExperience.email, userExperience.password)">Log in
+            </button>
+            <button id="btn_logout" @click="userExperience.logout()">Log out</button>
         </div>
 
-        <div style="white-space: pre;">Loading: {{net.db.loadingObjectList.loadingObjects |
-            displayLoadingObjects}}
+        <div style="white-space: pre; flex: 1;">Loading: {{net.db.loadingObjectList.loadingObjects | displayLoadingObjects}}
         </div>
 
-        <div style="display: flex; flex-flow: column wrap;">
+        <div style="display: flex; flex-flow: column nowrap;">
             <!-- Will this need to be an observable because vue ownt detect changes to localStorage?
               Or will it wrap the getters and seeters in its own?-->
             <div>Logged in: {{userExperience.userId}}</div>
@@ -24,22 +32,18 @@
             <span>PreEdits: {{preEditSelectedNodes$.length}}</span>
             <span>Edits: {{editSelectedNodes$.length}}</span>
         </div>
-        <div>
-            <button id="btn_login" @click="userExperience.login(userExperience.email, userExperience.password)">Log in
-            </button>
-            <button id="btn_logout" @click="userExperience.logout()">Log out</button>
+        <div style="display: flex; flex-flow: column nowrap;">
+            <div id="div_email">Email: {{userExperience.email}}</div>
         </div>
-        <div id="div_email">Email: {{userExperience.email}}</div>
-<!--        <div id="div_capacity">Capacity Fraction {{userExperience.capacityFraction}}</div>-->
+        <!--        <div id="div_capacity">Capacity Fraction {{userExperience.capacityFraction}}</div>-->
         <!--            <button id="btn_newnode" @click="btnNewNodeClicked">New Node</button>
                     <button id="btn_deletenode" @click="btnDeleteNodesClicked">Delete Nodes</button>-->
-
     </div>
-
 </template>
 
 <script>
     import {map} from 'rxjs/operators';
+
     export default {
         name: "navbar",
         mounted() {
@@ -71,12 +75,12 @@
                 messages$: this.net.messages$,
                 lastMessages$: this.net.messages$.pipe(
                     map(a => {
-                        const start = a.length - 10;
+                            const start = a.length - 10;
                             return start < 0 ?
-                            a :
-                            a.slice(start);
-                    }
-                )),
+                                a :
+                                a.slice(start);
+                        }
+                    )),
                 groupSelectedNodes$: this.net.groupSelectedNodes$,
                 preEditSelectedNodes$: this.net.preEditSelectedNodes$,
                 editSelectedNodes$: this.net.editSelectedNodes$,

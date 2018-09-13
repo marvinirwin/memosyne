@@ -4,12 +4,14 @@
          class="node-children"
          tabindex="255">
         <div
-                v-for="rootNode in displayRootNodes$"
+                v-for="(rootNode, index) in displayRootNodes$"
                 :key="rootNode.id">
             <node
                     v-if="rootNode.visible"
                     :node="rootNode"
                     :siblings="displayRootNodes$.filter(n => n !== rootNode)"
+                    :colorList="colorList"
+                    :colorIndex="calcColorIndex(index)"
             ></node>
         </div>
 
@@ -22,12 +24,22 @@
     import Node from './node.vue';
     import {setFocusedInstance, sleep} from "../net";
 
+    export const colorList = [
+        '#DDDDDD',
+        '#DDDDDD',
+        '#DDDDDD',
+        '#DDDDDD',
+    ];
 
     export default {
         name: "node-container",
         components: {Node},
+        computed: {
+        },
         data() {
-            return {}
+            return {
+                colorList
+            }
         },
         mounted() {
             // const memosyne = this.$store.state.memosyne;
@@ -35,6 +47,19 @@
 
         },
         methods: {
+            calcColorIndex(index) {
+                if (index === 0) {
+                    return 0;
+                }
+                const listLength = this.colorList.length;
+                const quot = index / listLength;
+                if (quot < 1) {
+                    return index;
+                }
+                const num = quot / Math.floor(quot);
+                const i = num * listLength;
+                return i - 1;
+            },
             /**
              * @param {KeyboardEvent} e
              */

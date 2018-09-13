@@ -398,6 +398,9 @@ export function setFocusedInstance(net, oldInstance, newInstance) {
     net.setPreEditingNode(newInstance.node);
     net.groupSelectedNodes$.next([newInstance.node]);
 }
+export function scrollUpElement(el) {
+    $(el).animate({ scrollTop: 0 }, "fast");
+}
 
 export class Net {
     /**
@@ -503,7 +506,10 @@ export class Net {
              */
             const previousFunc = (n) => {
                 n.editSelected$.next(false);
-                n.vueInstances.map(v => v.showMarkdown());
+                n.vueInstances.map(v => {
+                    v.showMarkdown();
+                    v.scrollUpMarkdown();
+                });
             };
             /**
              *

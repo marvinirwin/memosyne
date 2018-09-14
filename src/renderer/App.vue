@@ -5,7 +5,7 @@
 </template>
 
 <script>
-    require('materialize-css/dist/css/materialize.css');
+/*    require('materialize-css/dist/css/materialize.css');*/
     export default {
         name: 'memosyne',
         methods: {},
@@ -14,7 +14,33 @@
     }
 </script>
 
-<style>
+<style lang="scss">
+    $primary-color: #90a4ae;
+    $primary-color-light: #c1d5e0;
+    $primary-color-dark: #62757f;
+
+    $secondary-color: #a1887f;
+    $secondary-color-light: #d3b8ae;
+    $secondary-color-dark: #725b53;
+
+    @import '../../node_modules/materialize-css/dist/css/materialize.css';
+
+    .navbar {
+        background-color: $primary-color-dark;
+        color: white;
+    }
+
+    .navbar > * {
+        margin: 5px;
+    }
+
+    .btn {
+        background-color: $secondary-color;
+    }
+
+    #email, #password {
+    }
+
     /* CSS */
     *, *:focus {
         outline: none;
@@ -31,11 +57,11 @@
     }
 
     .nucleus.persisted {
-        border-color: green;
+        border-color: $primary-color;
     }
 
     .nucleus:not(.persisted) {
-        border-color: red;
+        border-color: $secondary-color;
     }
 
 

@@ -410,6 +410,11 @@ export class Net {
      */
     constructor(nodes, edges, db) {
         /**
+         * @type {UserExperience}
+         */
+        this.userExperience = undefined;
+
+        /**
          * @type {Node[]}
          */
         this.nodes = [];
@@ -702,6 +707,14 @@ export class Net {
         /*        const selectedNodes = this.groupSelectedNodes$.getValue();*/
         switch (event.key) {
             // CTRL+e is the hotkey to erase a node
+            case "o":
+                if (event.ctrlKey) {
+                    const o = this.userExperience.newLoadingObject("TEST LOADING OBJECT")
+                    setTimeout(() => {
+                        o.resolve();
+                    }, 5000)
+                }
+                break;
             case "e":
                 if (event.ctrlKey) {
                     this.addNodeHideToQue([node]);

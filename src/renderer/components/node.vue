@@ -98,8 +98,7 @@
             // delete this.$store.state.memosyne.nodeElementMap[this.$refs.root];
         },
         mounted() {
-            this.$refs.nucleus.style.backgroundColor = this.colorList[this.colorIndex];
-            debugger;
+            // this.$refs.nucleus.style.backgroundColor = this.colorList[this.colorIndex];
             /**
              * @type Node
              */

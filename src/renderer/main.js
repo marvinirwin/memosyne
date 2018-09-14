@@ -50,6 +50,7 @@ const persistor = new RequestHandler(
 
 const net = new Net([], [], persistor);
 const userExperience = new UserExperience(net);
+net.userExperience = userExperience;
 userExperience.checkLoginGetNodes().catch(e => console.log(e));
 
 Vue.mixin({

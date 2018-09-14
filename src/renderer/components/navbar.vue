@@ -1,30 +1,48 @@
 <template>
-    <div style="display: flex; justify-content: center;">
+    <div class="navbar" style="display: flex; flex-flow: row nowrap;">
         <!--        <div style="font-size: 10px; height: fit-content; position: absolute; background-color: ">
                     {{messages$ | lastMessages}}
                 </div>-->
-        <div style="flex: 1;">
-            <div>
-                <input id="email" @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
-                       v-model="userExperience.email"
-                       placeholder="email">
-            </div>
-            <div>
-                <input id="password"
-                       @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
-                       v-model="userExperience.password" type="password" placeholder="password">
-            </div>
+        <div>
+            <input id="email"
+                   @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
+                   v-model="userExperience.email"
+                   placeholder="email"
+                   style="color: white;"
+                   type="email"
+                   class="inp"
+            >
+            <input id="password"
+                   @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
+                   v-model="userExperience.password"
+                   type="password"
+                   placeholder="password"
+                   style="color: white;"
+            >
         </div>
-        <div style="display: flex; flex-flow: column nowrap; ">
-            <button id="btn_login" @click="userExperience.login(userExperience.email, userExperience.password)">Log in
-            </button>
-            <button id="btn_logout" @click="userExperience.logout()">Log out</button>
-        </div>
-
-        <div style="white-space: pre; flex: 1;">Loading: {{net.db.loadingObjectList.loadingObjects | displayLoadingObjects}}
-        </div>
-
         <div style="display: flex; flex-flow: column nowrap;">
+
+            <button class="btn waves-effect"
+                    @click="userExperience.login(userExperience.email, userExperience.password)">Login
+                <i class="material-icons right">Login</i>
+            </button>
+            <button class="btn waves-effect" @click="userExperience.logout()">Log out
+                <i class="material-icons right">Log out</i>
+            </button>
+        </div>
+        <div>
+            <ul class="collection">
+                <li class="collection-item"
+                    v-for="loadingObject in net.db.loadingObjectList.loadingObjects">
+                    what {{loadingObject.text}}
+                </li>
+            </ul>
+        </div>
+<!--        <div>Loading: {{net.db.loadingObjectList.loadingObjects |
+            displayLoadingObjects}}
+        </div>-->
+
+        <div style="display: flex; flex-flow: column nowrap;" v-if="debug">
             <!-- Will this need to be an observable because vue ownt detect changes to localStorage?
               Or will it wrap the getters and seeters in its own?-->
             <div>Logged in: {{userExperience.userId}}</div>
@@ -32,9 +50,9 @@
             <span>PreEdits: {{preEditSelectedNodes$.length}}</span>
             <span>Edits: {{editSelectedNodes$.length}}</span>
         </div>
-        <div style="display: flex; flex-flow: column nowrap;">
-            <div id="div_email">Email: {{userExperience.email}}</div>
-        </div>
+        <!--        <div style="display: flex; flex-flow: column nowrap;">
+                    <div id="div_email">Email: {{userExperience.email}}</div>
+                </div>-->
         <!--        <div id="div_capacity">Capacity Fraction {{userExperience.capacityFraction}}</div>-->
         <!--            <button id="btn_newnode" @click="btnNewNodeClicked">New Node</button>
                     <button id="btn_deletenode" @click="btnDeleteNodesClicked">Delete Nodes</button>-->

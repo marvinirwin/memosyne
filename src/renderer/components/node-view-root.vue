@@ -32,6 +32,7 @@
     import NodeContainer from './node-container.vue';
     import showdown from 'showdown';
     import {map} from 'rxjs/operators';
+    import {HORIZONTAL_TREE, VERTICAL_TREE} from "../net";
 
     const converter = new showdown.Converter();
     converter.setOption('tables', true);
@@ -46,8 +47,6 @@
                 userMessageClearTimeout: undefined,
                 nodeOrientationSheet: el,
             }
-        },
-        mounted() {
         },
         methods: {
             applyHorizontalRules() {
@@ -100,6 +99,16 @@
         },
         mounted() {
             document.converter = converter;
+            this.userExperience.nodeLayout$.subscribe(v => {
+                switch(v) {
+                    case VERTICAL_TREE:
+                        this.applyVerticalRules();
+                        break;
+                    case HORIZONTAL_TREE:
+                        this.applyHorizontalRules();
+                        break;
+                }
+            });
             this.userExperience.message$.subscribe(v => {
                 this.userMessages.push(v);
                 if (this.userMessageClearTimeout) {

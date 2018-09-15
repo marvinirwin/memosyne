@@ -35,11 +35,31 @@
     }
 
     .btn {
+        background-color: $secondary-color-dark;
+    }
+
+    .btn:hover {
         background-color: $secondary-color;
     }
 
-    #email, #password {
+    #email:focus, #password:focus {
+        border-bottom: $secondary-color;
+        box-shadow: 0 1px 0 0 $secondary-color;
     }
+
+    .collection {
+        background-color: $secondary-color;
+        flex: 1;
+    }
+
+    .collection > li.collection-item {
+        background-color: $secondary-color;
+        color: black;
+        line-height: 0;
+        padding: 10px;
+        border-bottom-style: solid;
+    }
+
 
     /* CSS */
     *, *:focus {

@@ -649,7 +649,6 @@ export class Net {
         this.preEditSelectedNodes$.getValue().map(n => n.preEditSelected$.next(false));
     }
 
-
     /**
      * @param parentInstance {Vue}
      */
@@ -704,15 +703,16 @@ export class Net {
         let newInstance;
         let siblingInstances = [];
         let myIndex = -1;
+        const viewMode = this.userExperience.nodeLayout$.getValue();
         /*        const selectedNodes = this.groupSelectedNodes$.getValue();*/
         switch (event.key) {
             // CTRL+e is the hotkey to erase a node
             case "o":
                 if (event.ctrlKey) {
-                    const o = this.userExperience.newLoadingObject("TEST LOADING OBJECT")
+                    const o = this.db.loadingObjectList.newLoadingObject("TEST LOADING OBJECT");
                     setTimeout(() => {
                         o.resolve();
-                    }, 5000)
+                    }, 20000)
                 }
                 break;
             case "e":
@@ -733,83 +733,121 @@ export class Net {
                 this.setPreEditingNode(node);
                 break;
             case "ArrowLeft":
-                // In the case of a left arrow we want to go to
-                // that vue instance's immediate parent's node
-                this.pushMessage('Arrow left pressed, selecting parent');
-                let parent = vueInstance.$parent;
-                // If we're at a root node then the parent wont have a node, so don't go anywhere
-                if (parent.node) {
-                    setFocusedInstance(this, vueInstance, parent);
+                // TODO add a check for view mode here
+                switch (viewMode) {
+                    case HORIZONTAL_TREE:
+                        this.selectParentNode(vueInstance);
+                        break;
+                    case VERTICAL_TREE:
+                        this.selectAboveSibling(siblingInstances, vueInstance, myIndex, newInstance);
+                        break;
                 }
                 break;
             case "ArrowRight":
-                this.pushMessage('Arrow left pressed, selecting child');
-                let children = vueInstance.$children.filter(v => v.node && v.node.visible);
-                let childrenLength = children.length;
-                if (!childrenLength) {
-                    return;
+                switch (viewMode) {
+                    case HORIZONTAL_TREE:
+                        this.selectChild(vueInstance);
+                        break;
+                    case VERTICAL_TREE:
+                        this.selectBelowSibling(siblingInstances, vueInstance, myIndex, newInstance);
+                        break;
                 }
-                let i = childrenLength % 2 ?
-                    (childrenLength / 2) + 0.5 - 1 :
-                    childrenLength / 2;
-
-                setFocusedInstance(this, vueInstance, children[i]);
                 break;
             case "ArrowUp":
-                this.pushMessage('Arrow up pressed, selecting sibling');
-                siblingInstances = vueInstance.$parent.$children.filter(v => v.node && v.node.visible);
-                // If we have no siblings don't do anything
-                if (siblingInstances.length === 1) {
-                    return;
+                // TODO add a check for view mode here
+                switch (viewMode) {
+                    case HORIZONTAL_TREE:
+                        this.selectAboveSibling(siblingInstances, vueInstance, myIndex, newInstance);
+                        break;
+                    case VERTICAL_TREE:
+                        this.selectParentNode(vueInstance);
+                        break;
                 }
-                // If we have no siblings than we can't go up
-                for (let i = 0; i < siblingInstances.length; i++) {
-                    const siblingInstance = siblingInstances[i];
-                    if (siblingInstance === vueInstance) {
-                        myIndex = i;
-                    }
-                }
-                // Once we have
-                if (myIndex === -1) {
-                    alert("Could not find self in parent's successorNodes handling ArrowDown");
-                    return;
-                }
-                // myIndex = siblingRefs.findIndex((r) => .isSameNode(r));
-                if (myIndex === 0) {
-                    myIndex = siblingInstances.length - 1;
-                } else {
-                    myIndex--;
-                }
-                newInstance = siblingInstances[myIndex];
-                setFocusedInstance(this, vueInstance, newInstance);
                 break;
             case "ArrowDown":
-                this.pushMessage('Arrow down pressed, selecting sibling');
+                // TODO add a check for view mode here
                 siblingInstances = vueInstance.$parent.$children.filter(v => v.node && v.node.visible);
-                if (siblingInstances.length === 1) {
-                    return;
+                switch (viewMode) {
+                    case HORIZONTAL_TREE:
+                        this.selectBelowSibling(siblingInstances, vueInstance, myIndex, newInstance);
+                        break;
+                    case VERTICAL_TREE:
+                        this.selectChild(vueInstance);
+                        break;
                 }
-                // Try to find the index of myself so I can go one down
-                for (let i = 0; i < siblingInstances.length; i++) {
-                    const siblingInstance = siblingInstances[i];
-                    if (siblingInstance === vueInstance) {
-                        myIndex = i;
-                    }
-                }
-                // Once we have
-                if (myIndex === -1) {
-                    alert("Could not find self in parent's successorNodes handling ArrowDown");
-                    return;
-                }
-                // myIndex = siblingRefs.findIndex((r) => .isSameNode(r));
-                if (myIndex === (siblingInstances.length - 1)) {
-                    myIndex = 0;
-                } else {
-                    myIndex++;
-                }
-                newInstance = siblingInstances[myIndex];
-                setFocusedInstance(this, vueInstance, newInstance);
                 break;
+        }
+    }
+
+    selectBelowSibling(siblingInstances, vueInstance, myIndex, newInstance) {
+        if (siblingInstances.length !== 1) {
+            for (let i = 0; i < siblingInstances.length; i++) {
+                const siblingInstance = siblingInstances[i];
+                if (siblingInstance === vueInstance) {
+                    myIndex = i;
+                }
+            }
+            // Once we have
+            /*                    if (myIndex === -1) {
+                                    alert("Could not find self in parent's successorNodes handling ArrowDown");
+                                    return;
+                                }*/
+            // myIndex = siblingRefs.findIndex((r) => .isSameNode(r));
+            if (myIndex === (siblingInstances.length - 1)) {
+                myIndex = 0;
+            } else {
+                myIndex++;
+            }
+            newInstance = siblingInstances[myIndex];
+            setFocusedInstance(this, vueInstance, newInstance);
+        }
+        return {myIndex, newInstance};
+    }
+
+    selectAboveSibling(siblingInstances, vueInstance, myIndex, newInstance) {
+        siblingInstances = vueInstance.$parent.$children.filter(v => v.node && v.node.visible);
+        // If we have no siblings don't do anything
+        if (siblingInstances.length === 1) {
+            for (let i = 0; i < siblingInstances.length; i++) {
+                const siblingInstance = siblingInstances[i];
+                if (siblingInstance === vueInstance) {
+                    myIndex = i;
+                }
+            }
+        }
+        // If we have no siblings than we can't go up
+        // Once we have
+        /*                if (myIndex === -1) {
+                            alert("Could not find self in parent's successorNodes handling ArrowDown");
+                            return;
+                        }*/
+        // myIndex = siblingRefs.findIndex((r) => .isSameNode(r));
+        if (myIndex === 0) {
+            myIndex = siblingInstances.length - 1;
+        } else {
+            myIndex--;
+        }
+        newInstance = siblingInstances[myIndex];
+        setFocusedInstance(this, vueInstance, newInstance);
+        return {siblingInstances, myIndex, newInstance};
+    }
+
+    selectChild(vueInstance) {
+        let children = vueInstance.$children.filter(v => v.node && v.node.visible);
+        let childrenLength = children.length;
+        if (childrenLength) {
+            let i = childrenLength % 2 ?
+                (childrenLength / 2) + 0.5 - 1 :
+                childrenLength / 2;
+
+            setFocusedInstance(this, vueInstance, children[i]);
+        }
+    }
+
+    selectParentNode(vueInstance) {
+        let parent = vueInstance.$parent;
+        if (parent.node) {
+            setFocusedInstance(this, vueInstance, parent);
         }
     }
 
@@ -903,8 +941,10 @@ export class LoadingObject {
         this.objectList = objectList;
     }
 
-    resolve() {
-        this.text = this.text + " success";
+    resolve(i) {
+        this.text = i ?
+            this.text + i :
+            this.text + " success";
         setTimeout(() => {
             this.removeSelf();
         }, LOADING_OBJECT_TIMEOUT)
@@ -1177,7 +1217,6 @@ export class RequestHandler {
     // On startup load all que'd changes to the interface, and add them to the que.  Apply them in the order they come in.
 }
 
-export const VERTICAL_LINEAR = 'VERTICAL_LINEAR';
 export const VERTICAL_TREE = 'VERTICAL_TREE';
 export const HORIZONTAL_TREE = 'HORIZONTAL_TREE';
 
@@ -1341,19 +1380,23 @@ export class ViewportManager {
 
 }*/
 
+
 export class UserExperience {
     /**
      *
      * @param net {Net}
+     * @param loadingObjectList {LoadingObjectList}
      */
-    constructor(net) {
+    constructor(net, loadingObjectList) {
         this.net = net;
+        this.loadingObjectList = loadingObjectList;
         this.capacityFraction = undefined;
         /**
          *
          * @type {Subject<String>}
          */
         this.message$ = new BehaviorSubject('');
+        this.nodeLayout$ = new BehaviorSubject(VERTICAL_TREE);
     }
 
     get accessToken() {
@@ -1388,9 +1431,13 @@ export class UserExperience {
         if (!this.accessToken) {
             return false;
         }
+        let o;
         try {
+            o = this.loadingObjectList.newLoadingObject("Checking if you're logged in");
             await axios.get(resolveApiUrl(api, UrlUsers, this.userId, 'nodes'), {params: {filter: {limit: 0}}});
+            o.resolve("User is logged in!");
         } catch (e) {
+            o.reject(e);
             return false;
         }
         return true;
@@ -1423,8 +1470,15 @@ export class UserExperience {
     }
 
     async login(email, password) {
-        const result = await axios.post(resolveApiUrl(api, UrlUsers, 'login'), {email, password});
-        UserExperience.setLoginResults(result.data.id, result.data.userId, email);
+        let o;
+        try {
+            o = this.loadingObjectList.newLoadingObject("Logging in " + email);
+            const result = await axios.post(resolveApiUrl(api, UrlUsers, 'login'), {email, password});
+            this.setLoginResults(result.data.id, result.data.userId, email);
+            o.resolve("Successfully logged in");
+        } catch(e) {
+            o.reject(e);
+        }
     }
 
     async logout() {

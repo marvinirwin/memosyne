@@ -5,7 +5,7 @@
                 </div>-->
         <div>
             <input id="email"
-                   @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
+                   @keydown.enter.stop="userExperience.login(userExperience.email, userExperience.password)"
                    v-model="userExperience.email"
                    placeholder="email"
                    style="color: white;"
@@ -13,14 +13,14 @@
                    class="inp"
             >
             <input id="password"
-                   @keydown.enter="userExperience.login(userExperience.email, userExperience.password)"
+                   @keydown.enter.stop="userExperience.login(userExperience.email, userExperience.password)"
                    v-model="userExperience.password"
                    type="password"
                    placeholder="password"
                    style="color: white;"
             >
         </div>
-        <div style="display: flex; flex-flow: column nowrap;">
+        <div style="display: flex; flex-flow: column nowrap; justify-content: space-between">
 
             <button class="btn waves-effect"
                     @click="userExperience.login(userExperience.email, userExperience.password)">Login
@@ -30,17 +30,15 @@
                 <i class="material-icons right">Log out</i>
             </button>
         </div>
-        <div>
-            <ul class="collection">
-                <li class="collection-item"
-                    v-for="loadingObject in net.db.loadingObjectList.loadingObjects">
-                    what {{loadingObject.text}}
-                </li>
-            </ul>
-        </div>
-<!--        <div>Loading: {{net.db.loadingObjectList.loadingObjects |
-            displayLoadingObjects}}
-        </div>-->
+        <ul class="collection" style="flex: 1; color: black; margin: 5px; overflow: auto;">
+            <li class="collection-item"
+                v-for="loadingObject in net.db.loadingObjectList.loadingObjects">
+                {{loadingObject.text}}
+            </li>
+        </ul>
+        <!--        <div>Loading: {{net.db.loadingObjectList.loadingObjects |
+                    displayLoadingObjects}}
+                </div>-->
 
         <div style="display: flex; flex-flow: column nowrap;" v-if="debug">
             <!-- Will this need to be an observable because vue ownt detect changes to localStorage?

@@ -5,7 +5,7 @@
 </template>
 
 <script>
-/*    require('materialize-css/dist/css/materialize.css');*/
+    /*    require('materialize-css/dist/css/materialize.css');*/
     export default {
         name: 'memosyne',
         methods: {},
@@ -48,18 +48,19 @@
     }
 
     .collection {
-        background-color: $secondary-color;
+/*        background-color: $secondary-color;*/
         flex: 1;
     }
 
     .collection > li.collection-item {
-        background-color: $secondary-color;
-        color: black;
+/*        background-color: $secondary-color;
+        color: black;*/
         line-height: 0;
         padding: 10px;
-        border-bottom-style: solid;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        border-bottom: 1px solid !important;
     }
-
 
     /* CSS */
     *, *:focus {
@@ -84,7 +85,6 @@
         border-color: $secondary-color;
     }
 
-
     .node-textarea {
         font-size: 1rem;
         min-height: 20px;
@@ -94,251 +94,311 @@
         flex: 1;
     }
 
-
-    .groupSelected {
-        background-color: lightblue;
+    @import url(http://fonts.googleapis.com/css?family=Inconsolata);
+    @import url(http://fonts.googleapis.com/css?family=PT+Sans);
+    @import url(http://fonts.googleapis.com/css?family=PT+Sans+Narrow:400,700);
+    article,
+    aside,
+    details,
+    figcaption,
+    figure,
+    footer,
+    header,
+    hgroup,
+    nav,
+    section,
+    summary {
+        display: block;
     }
-
-    .preEditSelected {
-        color: darkblue;
-    }
-
-    .editSelected {
-        color: darkred;
-    }
-
-    /*    textarea:focus {
-            background-color: red;
-        }*/
-
-    /*    .selected {
-            -webkit-box-shadow: 0 0.05em 0.2em 0 rgba(0, 0, 0, 0.2);
-            box-shadow: 0 0.05em 0.2em 0 rgba(0, 0, 0, 0.2);
-            background: #7fa0eb;
-        }*/
-
-    @media print {
-        *,
-        *:before,
-        *:after {
-            background: transparent !important;
-            color: #000 !important;
-            box-shadow: none !important;
-            text-shadow: none !important;
-        }
-
-        a,
-        a:visited {
-            text-decoration: underline;
-        }
-
-        a[href]:after {
-            content: " (" attr(href) ")";
-        }
-
-        abbr[title]:after {
-            content: " (" attr(title) ")";
-        }
-
-        a[href^="#"]:after,
-        a[href^="javascript:"]:after {
-            content: "";
-        }
-
-        pre,
-        blockquote {
-            border: 1px solid #999;
-            page-break-inside: avoid;
-        }
-
-        thead {
-            display: table-header-group;
-        }
-
-        tr,
-        img {
-            page-break-inside: avoid;
-        }
-
-        img {
-            max-width: 100% !important;
-        }
-
-        p,
-        h2,
-        h3 {
-            orphans: 3;
-            widows: 3;
-        }
-
-        h2,
-        h3 {
-            page-break-after: avoid;
-        }
-    }
-
-    pre,
-    code {
-        /*        font-family: Menlo, Monaco, "Courier New", monospace;*/
-    }
-
-    pre {
-        padding: .5rem;
-        line-height: 1.25;
-        overflow-x: scroll;
-    }
-
-    a,
-    a:visited {
-        color: #3498db;
-    }
-
-    a:hover,
-    a:focus,
-    a:active {
-        color: #2980b9;
-    }
-
-    .modest-no-decoration {
-        text-decoration: none;
-    }
-
-    html {
-        font-size: 12px;
-    }
-
-    @media screen and (min-width: 32rem) and (max-width: 48rem) {
-        html {
-            font-size: 15px;
-        }
-    }
-
-    @media screen and (min-width: 48rem) {
-        html {
-            font-size: 16px;
-        }
-    }
-
-    body {
-        line-height: 1.85;
-    }
-
-    p,
-    .modest-p {
-        font-size: 1rem;
-        margin-bottom: 1.3rem;
-    }
-
-    h1,
-    .modest-h1,
-    h2,
-    .modest-h2,
-    h3,
-    .modest-h3,
-    h4,
-    .modest-h4 {
-        margin: 1.414rem 0 .5rem;
-        font-weight: inherit;
-        line-height: 1.42;
-    }
-
-    h1,
-    .modest-h1 {
-        margin-top: 0;
-        font-size: 3.998rem;
-    }
-
-    h2,
-    .modest-h2 {
-        font-size: 2.827rem;
-    }
-
-    h3,
-    .modest-h3 {
-        font-size: 1.999rem;
-    }
-
-    h4,
-    .modest-h4 {
-        font-size: 1.414rem;
-    }
-
-    h5,
-    .modest-h5 {
-        font-size: 1.121rem;
-    }
-
-    h6,
-    .modest-h6 {
-        font-size: .88rem;
-    }
-
-    small,
-    .modest-small {
-        font-size: .707em;
-    }
-
-    /* https://github.com/mrmrs/fluidity */
-
-    img,
+    audio,
     canvas,
-    iframe,
-    video,
-    svg,
+    video {
+        display: inline-block;
+    }
+    audio:not([controls]) {
+        display: none;
+        height: 0;
+    }
+    [hidden] {
+        display: none;
+    }
+    html {
+        font-family: sans-serif;
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+    }
+    body {
+        margin: 0;
+    }
+    a:focus {
+        outline: thin dotted;
+    }
+    a:active,
+    a:hover {
+        outline: 0;
+    }
+    h1 {
+        font-size: 2em;
+    }
+    abbr[title] {
+        border-bottom: 1px dotted;
+    }
+    b,
+    strong {
+        font-weight: bold;
+    }
+    dfn {
+        font-style: italic;
+    }
+    mark {
+        background: #ff0;
+        color: #000;
+    }
+    code,
+    kbd,
+    pre,
+    samp {
+        font-family: monospace, serif;
+        font-size: 1em;
+    }
+    pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+    q {
+        quotes: "\201C" "\201D" "\2018" "\2019";
+    }
+    small {
+        font-size: 80%;
+    }
+    sub,
+    sup {
+        font-size: 75%;
+        line-height: 0;
+        position: relative;
+        vertical-align: baseline;
+    }
+    sup {
+        top: -0.5em;
+    }
+    sub {
+        bottom: -0.25em;
+    }
+    img {
+        border: 0;
+    }
+    svg:not(:root) {
+        overflow: hidden;
+    }
+    figure {
+        margin: 0;
+    }
+    fieldset {
+        border: 1px solid #c0c0c0;
+        margin: 0 2px;
+        padding: 0.35em 0.625em 0.75em;
+    }
+    legend {
+        border: 0;
+        padding: 0;
+    }
+    button,
+    input,
     select,
     textarea {
-        max-width: 100%;
+        font-family: inherit;
+        font-size: 100%;
+        margin: 0;
     }
-
-    @import url(http://fonts.googleapis.com/css?family=Open+Sans+Condensed:300,300italic,700);
-
-    @import url(http://fonts.googleapis.com/css?family=Arimo:700,700italic);
-
+    button,
+    input {
+        line-height: normal;
+    }
+    button,
+    html input[type="button"],
+    input[type="reset"],
+    input[type="submit"] {
+        -webkit-appearance: button;
+        cursor: pointer;
+    }
+    button[disabled],
+    input[disabled] {
+        cursor: default;
+    }
+    input[type="checkbox"],
+    input[type="radio"] {
+        box-sizing: border-box;
+        padding: 0;
+    }
+    input[type="search"] {
+        -webkit-appearance: textfield;
+        -moz-box-sizing: content-box;
+        -webkit-box-sizing: content-box;
+        box-sizing: content-box;
+    }
+    input[type="search"]::-webkit-search-cancel-button,
+    input[type="search"]::-webkit-search-decoration {
+        -webkit-appearance: none;
+    }
+    button::-moz-focus-inner,
+    input::-moz-focus-inner {
+        border: 0;
+        padding: 0;
+    }
+    textarea {
+        overflow: auto;
+        vertical-align: top;
+    }
+    table {
+        border-collapse: collapse;
+        border-spacing: 0;
+    }
     html {
-        font-size: 18px;
-        max-width: 100%;
+        font-family: 'PT Sans', sans-serif;
     }
-
-    body {
-        color: #444;
-        font-family: 'Open Sans Condensed', sans-serif;
-        font-weight: 300;
-        margin: 0 auto;
-        /*        max-width: 48rem;*/
-        line-height: 1.45;
-        /*        padding: .25rem;*/
+    pre,
+    code {
+        font-family: 'Inconsolata', sans-serif;
     }
-
     h1,
     h2,
     h3,
     h4,
     h5,
     h6 {
-        font-family: Arimo, Helvetica, sans-serif;
+        font-family: 'PT Sans Narrow', sans-serif;
+        font-weight: 700;
     }
-
-    h1,
-    h2,
-    h3 {
-        border-bottom: 2px solid #fafafa;
-        margin-bottom: 1.15rem;
-        padding-bottom: .5rem;
-        text-align: center;
+    html {
+        background-color: #eee8d5 !important;
+        color: #657b83;
+/*        margin: 1em;*/
     }
-
-    blockquote {
-        border-left: 8px solid #fafafa;
-        padding: 1rem;
+    body {
+        background-color: #fdf6e3 !important;
+        margin: 0 auto;
+/*        max-width: 23cm;*/
+        border: 1pt solid #93a1a1;
+/*        padding: 1em;*/
     }
-
-    pre,
+    .card-panel {
+        background-color: #fdf6e3 !important;
+    }
     code {
-        background-color: #fafafa;
+        background-color: #eee8d5 !important;
+        padding: 2px;
     }
-
-    /**
-     * Creator: Simon R.
-     */
+    a {
+        color: #b58900;
+    }
+    a:visited {
+        color: #cb4b16;
+    }
+    a:hover {
+        color: #cb4b16;
+    }
+    h1 {
+        color: #d33682;
+    }
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        color: #859900;
+    }
+    pre {
+        background-color: #fdf6e3 !important;
+        color: #657b83;
+        border: 1pt solid #93a1a1;
+        padding: 1em;
+        box-shadow: 5pt 5pt 8pt #eee8d5;
+    }
+    pre code {
+        background-color: #fdf6e3 !important;
+    }
+    h1 {
+        font-size: 2.8em;
+    }
+    h2 {
+        font-size: 2.4em;
+    }
+    h3 {
+        font-size: 1.8em;
+    }
+    h4 {
+        font-size: 1.4em;
+    }
+    h5 {
+        font-size: 1.3em;
+    }
+    h6 {
+        font-size: 1.15em;
+    }
+    .tag {
+        background-color: #eee8d5;
+        color: #d33682;
+        padding: 0 0.2em;
+    }
+    .todo,
+    .next,
+    .done {
+        color: #fdf6e3;
+        background-color: #dc322f;
+        padding: 0 0.2em;
+    }
+    .tag {
+        -webkit-border-radius: 0.35em;
+        -moz-border-radius: 0.35em;
+        border-radius: 0.35em;
+    }
+    .TODO {
+        -webkit-border-radius: 0.2em;
+        -moz-border-radius: 0.2em;
+        border-radius: 0.2em;
+        background-color: #2aa198;
+    }
+    .NEXT {
+        -webkit-border-radius: 0.2em;
+        -moz-border-radius: 0.2em;
+        border-radius: 0.2em;
+        background-color: #268bd2;
+    }
+    .ACTIVE {
+        -webkit-border-radius: 0.2em;
+        -moz-border-radius: 0.2em;
+        border-radius: 0.2em;
+        background-color: #268bd2;
+    }
+    .DONE {
+        -webkit-border-radius: 0.2em;
+        -moz-border-radius: 0.2em;
+        border-radius: 0.2em;
+        background-color: #859900;
+    }
+    .WAITING {
+        -webkit-border-radius: 0.2em;
+        -moz-border-radius: 0.2em;
+        border-radius: 0.2em;
+        background-color: #cb4b16;
+    }
+    .HOLD {
+        -webkit-border-radius: 0.2em;
+        -moz-border-radius: 0.2em;
+        border-radius: 0.2em;
+        background-color: #d33682;
+    }
+    .NOTE {
+        -webkit-border-radius: 0.2em;
+        -moz-border-radius: 0.2em;
+        border-radius: 0.2em;
+        background-color: #d33682;
+    }
+    .CANCELLED {
+        -webkit-border-radius: 0.2em;
+        -moz-border-radius: 0.2em;
+        border-radius: 0.2em;
+        background-color: #859900;
+    }
 
 </style>

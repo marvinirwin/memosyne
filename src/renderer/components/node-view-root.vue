@@ -121,7 +121,7 @@
 
             this.applyHorizontalRules();
             setTimeout(() => {
-                this.applyVerticalRules();
+                this.userExperience.nodeLayout$.next(VERTICAL_TREE);
             }, 5000);
         },
         subscriptions() {

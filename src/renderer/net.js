@@ -2,6 +2,7 @@ import {BehaviorSubject, Subject} from 'rxjs';
 import {debounceTime, scan} from 'rxjs/operators'
 import axios from 'axios';
 import * as $ from 'jquery';
+import * as moment from 'moment';
 
 export const LOADING_OBJECT_TIMEOUT = 10000;
 
@@ -309,6 +310,7 @@ export class NodeRevision extends gen_NodeRevision {
         super(o);
 
         this.persisted = persisted;
+        this.m_createdTimestamp = this.createdTimestamp && moment(this.createdTimestamp);
     }
 }
 
@@ -398,8 +400,9 @@ export function setFocusedInstance(net, oldInstance, newInstance) {
     net.setPreEditingNode(newInstance.node);
     net.groupSelectedNodes$.next([newInstance.node]);
 }
+
 export function scrollUpElement(el) {
-    $(el).animate({ scrollTop: 0 }, "fast");
+    $(el).animate({scrollTop: 0}, "fast");
 }
 
 export class Net {
@@ -702,11 +705,16 @@ export class Net {
         this.pushMessage("Handling hotkey press " + event.key);
         let newInstance;
         let siblingInstances = [];
-        let myIndex = -1;
+        if (vueInstance) {
+            siblingInstances = vueInstance.$children;
+        }
+        let myIndex = siblingInstances.indexOf(vueInstance);
+
         const viewMode = this.userExperience.nodeLayout$.getValue();
         /*        const selectedNodes = this.groupSelectedNodes$.getValue();*/
         switch (event.key) {
             // CTRL+e is the hotkey to erase a node
+            // CTRL+o is the hotkey to create a fake loading object
             case "o":
                 if (event.ctrlKey) {
                     const o = this.db.loadingObjectList.newLoadingObject("TEST LOADING OBJECT");
@@ -780,39 +788,43 @@ export class Net {
     }
 
     selectBelowSibling(siblingInstances, vueInstance, myIndex, newInstance) {
-        if (siblingInstances.length !== 1) {
-            for (let i = 0; i < siblingInstances.length; i++) {
-                const siblingInstance = siblingInstances[i];
-                if (siblingInstance === vueInstance) {
-                    myIndex = i;
-                }
-            }
-            // Once we have
-            /*                    if (myIndex === -1) {
-                                    alert("Could not find self in parent's successorNodes handling ArrowDown");
-                                    return;
-                                }*/
-            // myIndex = siblingRefs.findIndex((r) => .isSameNode(r));
-            if (myIndex === (siblingInstances.length - 1)) {
-                myIndex = 0;
-            } else {
-                myIndex++;
-            }
-            newInstance = siblingInstances[myIndex];
-            setFocusedInstance(this, vueInstance, newInstance);
+        siblingInstances = vueInstance.$parent.$children.filter(v => v.node && v.node.visible);
+        // If there is only one sibling then that sibling is us and we should return
+        if (siblingInstances.length === 1) {
+            return;
         }
-        return {myIndex, newInstance};
+        for (let i = 0; i < siblingInstances.length; i++) {
+            const siblingInstance = siblingInstances[i];
+            if (siblingInstance === vueInstance) {
+                myIndex = i;
+            }
+        }
+        // Once we have
+        /*                    if (myIndex === -1) {
+                                alert("Could not find self in parent's successorNodes handling ArrowDown");
+                                return;
+                            }*/
+        // myIndex = siblingRefs.findIndex((r) => .isSameNode(r));
+        if (myIndex === (siblingInstances.length - 1)) {
+            myIndex = 0;
+        } else {
+            myIndex++;
+        }
+        newInstance = siblingInstances[myIndex];
+        setFocusedInstance(this, vueInstance, newInstance);
+        return;
     }
 
     selectAboveSibling(siblingInstances, vueInstance, myIndex, newInstance) {
         siblingInstances = vueInstance.$parent.$children.filter(v => v.node && v.node.visible);
-        // If we have no siblings don't do anything
+        // If there is only one sibling then that sibling is us and we should return
         if (siblingInstances.length === 1) {
-            for (let i = 0; i < siblingInstances.length; i++) {
-                const siblingInstance = siblingInstances[i];
-                if (siblingInstance === vueInstance) {
-                    myIndex = i;
-                }
+            return;
+        }
+        for (let i = 0; i < siblingInstances.length; i++) {
+            const siblingInstance = siblingInstances[i];
+            if (siblingInstance === vueInstance) {
+                myIndex = i;
             }
         }
         // If we have no siblings than we can't go up
@@ -943,7 +955,7 @@ export class LoadingObject {
 
     resolve(i) {
         this.text = i ?
-            this.text + i :
+            this.text + " " + i :
             this.text + " success";
         setTimeout(() => {
             this.removeSelf();
@@ -1380,7 +1392,6 @@ export class ViewportManager {
 
 }*/
 
-
 export class UserExperience {
     /**
      *
@@ -1476,13 +1487,27 @@ export class UserExperience {
             const result = await axios.post(resolveApiUrl(api, UrlUsers, 'login'), {email, password});
             this.setLoginResults(result.data.id, result.data.userId, email);
             o.resolve("Successfully logged in");
-        } catch(e) {
+        } catch (e) {
             o.reject(e);
         }
     }
 
     async logout() {
-        await axios.post(resolveApiUrl(api, UrlUsers, 'logout'));
+        let o;
+        try {
+            o = this.loadingObjectList.newLoadingObject("Attempting to log out");
+            if (!this.accessToken) {
+                o.reject("Already logged out, no action needed");
+                return
+            }
+            await axios.post(resolveApiUrl(api, UrlUsers, 'logout'));
+            o.resolve("Logging out successful")
+        } catch (e) {
+            o.reject(e);
+        }
+        this.email = "";
+        this.userId = "";
+        this.accessToken = "";
     }
 
     setNetFromResult(result) {

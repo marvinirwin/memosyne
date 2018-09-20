@@ -53,8 +53,8 @@
     }
 
     .collection > li.collection-item {
-/*        background-color: $secondary-color;
-        color: black;*/
+        background-color: $secondary-color;
+        color: black;
         line-height: 0;
         padding: 10px;
         border-bottom-left-radius: 0;
@@ -86,7 +86,6 @@
     }
 
     .node-textarea {
-        font-size: 1rem;
         min-height: 20px;
     }
 

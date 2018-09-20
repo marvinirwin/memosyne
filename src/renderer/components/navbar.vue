@@ -5,7 +5,7 @@
                 </div>-->
         <div>
             <input id="email"
-                   @keydown.enter.stop="userExperience.login(userExperience.email, userExperience.password)"
+                   @keydown.enter.stop.prevent="userExperience.login(userExperience.email, userExperience.password)"
                    v-model="userExperience.email"
                    placeholder="email"
                    style="color: white;"
@@ -13,7 +13,7 @@
                    class="inp"
             >
             <input id="password"
-                   @keydown.enter.stop="userExperience.login(userExperience.email, userExperience.password)"
+                   @keydown.enter.stop.prevent="userExperience.login(userExperience.email, userExperience.password)"
                    v-model="userExperience.password"
                    type="password"
                    placeholder="password"
@@ -28,6 +28,9 @@
             </button>
             <button class="btn waves-effect" @click="userExperience.logout()">Log out
                 <i class="material-icons right">Log out</i>
+            </button>
+            <button @click="debug = !debug">
+                Toggle Debug
             </button>
         </div>
         <ul class="collection" style="flex: 1; color: black; margin: 5px; overflow: auto;">

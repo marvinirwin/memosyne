@@ -1,6 +1,6 @@
 <template>
     <div style="position: relative" @keydown="net.handleHotkeyPress(null, null, $event)" ref="root">
-        <div style="display: flex; flex-flow: column nowrap; position: fixed; background-color: lightgreen; z-index: 1; opacity: 0.5;"
+        <div style="display: flex; flex-flow: column nowrap; position: fixed; background-color: lightgreen; z-index: 1; opacity: 0.5; border-radius: 0px;"
              v-if="debug">
             <div v-for="message in lastMessages$" style="margin: 0; padding: 0;">
                 {{message}}
@@ -14,7 +14,7 @@
         overflow: auto;
         width: 100%;
         padding: 0;
-        margin: 0; "
+        margin: 0; border-radius: 0px;"
                 class="card"
         ></navbar>
         <node-container style="padding-top: 20vh;"></node-container>

@@ -18,6 +18,11 @@
              ref="nucleus"
              @click="handleClick($event)"
         >
+            <div>
+                <span>{{
+                    node.latestRevision$.getValue() &&
+                    node.latestRevision$.getValue().m_createdTimestamp.format('dddd, MMMM Do YYYY')}}</span>
+            </div>
             <!--             @click="setSelectedNodes({nodes: [node]})"-->
             <textarea
                     ref="textarea"
@@ -36,6 +41,7 @@
             </div>
             <!--                    @click="setSelectedNodes({nodes: [node]})"-->
             <input
+                    v-if="debug"
                     class="classification"
                     placeholder="classification"
                     v-model="node.classification">
@@ -184,9 +190,10 @@
                     }
                 }
                 if (event.key === "Escape") {
-                    this.node.net.removePreEditingNode(this.node);
+                    this.net.handleHotkeyPress(this, this.node, event);
+/*                    this.node.net.removePreEditingNode(this.node);
                     this.node.net.setPreEditingNode(this.node);
-                    this.$refs.nucleus.focus();
+                    this.$refs.nucleus.focus();*/
                 }
 
                 if (event.ctrlKey && event.key === "Enter") {

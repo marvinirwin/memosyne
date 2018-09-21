@@ -18,6 +18,8 @@ const UrlVNodes = 'VNodes';
 const UrlEdges = 'Edges';
 const UrlNodeRevisions = 'NodeRevisions';
 const UrlEdgeRevisions = 'EdgeRevisions';
+const UrlDefaultSourceNodes = 'DefaultSourceNodes';
+const UrlUserSourceNodes = 'SourceNodes';
 
 const netFilter = {
     include: [
@@ -53,6 +55,26 @@ const netFilter = {
         },
     ],
 };
+const nodeListFilter = {
+    include: [
+        {
+            relation: 'vNodes',
+            scope: {
+                where: {visible: true, text: {neq: null}},
+                order: ['lastModified DESC'],
+                include: [
+                    {
+                        relation: 'nodeRevisions',
+                        scope: {
+                            limit: 1,
+                            order: ['createdTimestamp DESC'],
+                        },
+                    }
+                ],
+            },
+        }
+    ]
+};
 const singleNodeFilter = {
     include: [
         {
@@ -64,6 +86,37 @@ const singleNodeFilter = {
         }
     ]
 };
+// User ->
+//  VNode WHERE id = $1
+//      -> NestedSetsGraph WHERE nodeId = VNode AND lft > VNode ->
+//          VNode -> VEdge
+function nodesBelowFilter(nodeId) {
+    return {
+        include: [
+
+        ]
+    }
+}
+
+/**
+ * @param n {Edge}
+ */
+export function sanitizeLoadedEdge(n) {
+    n.persisted = true;
+    n.edgeRevisions$.getValue().map(r => {
+        r.persisted = true;
+    });
+}
+
+/**
+ * @param n {Node}
+ */
+export function sanitizeLoadedNode(n) {
+    n.persisted = true;
+    n.nodeRevisions$.getValue().map(r => {
+        r.persisted = true;
+    });
+}
 
 export class gen_Edge {
     constructor({id, createdTimestamp, userId}) {
@@ -362,6 +415,14 @@ export class EdgeRevision extends gen_EdgeRevision {
     }
 }
 
+export class SourceNode extends Node {
+    constructor(o) {
+        super(o);
+        this.count = o.count;
+
+    }
+}
+
 /**
  *
  * @param n {number}
@@ -555,6 +616,12 @@ export class Net {
             newNodes.map(newFunc);
             return newNodes;
         })).subscribe();
+
+
+        /**
+         * @type {BehaviorSubject<SourceNode[]>}
+         */
+        this.sourceNodes$ = new BehaviorSubject([]);
 
         this.addNodesAndEdges(nodes, edges);
     }
@@ -1215,6 +1282,55 @@ export class RequestHandler {
         return new EdgeRevision(revisitionResult.data);
     }
 
+    async loadSourceList() {
+        // Join userId -> VNestedSetGraph -> VNodes
+        // TODO add UserId to VNestedSetGraph DONE
+        // TODO refind the model discovery script from books, or maybe copy the one from production-api
+        // TODO add nested remoting to VNestedSetGraph
+    }
+
+    /**
+     *
+     * @param n {SourceNode}
+     * @return {Promise<void>}
+     */
+    async loadSuccessorNodes(n) {
+        // Select all members of this tree joined on VNodes
+    }
+
+    /**
+     *
+     * @param n {Number}
+     * @return {Promise<Node[]>}
+     * @constructor
+     */
+    async LoadMostRecentNodes(n) {
+        const o = this.loadingObjectList.newLoadingObject(`Loading ${n} most recent nodes`);
+        try {
+            const result = await axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: nodeListFilter}});
+            if (!result || !result.data) {
+                o.reject("No result data!")
+                return [];
+            }
+            const user = result.data.length ?
+                result.data[0] :
+                result.data;
+
+            /**
+             * @type {Node[]}
+             */
+            const nodes = user.vNodes.map(o => new Node(o));
+            /**
+             * @type {Edge[]}
+             */
+            nodes.map(sanitizeLoadedNode);
+            return nodes;
+
+        } catch (e) {
+
+        }
+    }
+
     // Storage can be solved by observing array push, slice, etc
     // and then setting NODE/NODE_REVISION/EDGE/EDGE_REVISION localStorage keys to the array JSON'd
 
@@ -1231,6 +1347,7 @@ export class RequestHandler {
 
 export const VERTICAL_TREE = 'VERTICAL_TREE';
 export const HORIZONTAL_TREE = 'HORIZONTAL_TREE';
+export const SOURCE_LIST = 'SOURCE_LIST';
 
 /*
 export class ViewportManager {
@@ -1466,6 +1583,28 @@ export class UserExperience {
         this.setNetFromResult(result)
     }
 
+    /**
+     * So the query would be
+     * Select * from v_nested_sets_graph WHERE lft = 1 AND visible = true
+     * Then join on how many
+     */
+
+    /**
+     * These should load all source nodes as well as their usage statistics
+     * @return {Promise<void>}
+     */
+    async getDefaultSourceNodes() {
+        const result = await axios.get(resolveApiUrl(api, UrlDefaultSourceNodes), {params: {filter: netFilter}});
+    }
+
+    /**
+     * These should load all source nodes as well as their usage statistics
+     * @return {Promise<void>}
+     */
+    async getUserSourceNodes() {
+        const result = await axios.get(resolveApiUrl(api, UrlUserSourceNodes), {params: {filter: netFilter}});
+    }
+
     async checkLoginGetNodes() {
         this.net.pushMessage("Checking login and getting nodes");
         const loggedIn = await this.isAuthenticated();
@@ -1478,6 +1617,23 @@ export class UserExperience {
         }
         await sleep(1)
         // Now try and focus a node's element
+    }
+
+    /**
+     *
+     * @return {Promise<void>}
+     */
+    async checkLoginGetSourceNodes() {
+        this.net.pushMessage("Checking login and getting nodes");
+        const loggedIn = await this.isAuthenticated();
+        if (loggedIn) {
+            this.pushMessage("Querying your net...");
+            await this.getUserNet();
+        } else {
+            this.pushMessage("Not logged in, loading default network...");
+            await this.getDefaultNet();
+        }
+        await sleep(1)
     }
 
     async login(email, password) {
@@ -1531,18 +1687,8 @@ export class UserExperience {
          */
         const edges = user.edges.map(o => new Edge(o));
         // There should be a way to clear the net
-        nodes.map(n => {
-            n.persisted = true;
-            n.nodeRevisions$.getValue().map(r => {
-                r.persisted = true;
-            });
-        });
-        edges.map(n => {
-            n.persisted = true;
-            n.edgeRevisions$.getValue().map(r => {
-                r.persisted = true;
-            });
-        });
+        nodes.map(sanitizeLoadedNode);
+        edges.map(sanitizeLoadedEdge);
         this.net.addNodesAndEdges(nodes, edges);
 
     }

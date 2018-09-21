@@ -78,8 +78,6 @@
                     :ref="'child' + index"
                     :key="child.id"
                     :node="child"
-                    :colorList="colorList"
-                    :colorIndex="calcChildIndex()"
                     :siblings="node.successorNodes.filter(n => n !== child)"
             ></node>
         </div>
@@ -130,14 +128,14 @@
                 type: Array,
                 required: true
             },
-            colorList: {
+/*            colorList: {
                 type: Array,
                 required: true
             },
             colorIndex: {
                 type: Number,
                 required: true
-            }
+            }*/
         },
         data() {
             return {
@@ -148,10 +146,11 @@
         },
         methods: {
             calcChildIndex() {
-                return (this.colorIndex + 1) > this.colorList.length - 1 ?
+                return 0;
+/*                return (this.colorIndex + 1) > this.colorList.length - 1 ?
                     0 :
                     this.colorIndex + 1
-                    ;
+                    ;*/
             },
             /**
              * e {ScrollEvent}

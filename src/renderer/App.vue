@@ -8,6 +8,9 @@
     /*    require('materialize-css/dist/css/materialize.css');*/
     export default {
         name: 'memosyne',
+        components: {
+
+        },
         methods: {},
         mounted() {
         }

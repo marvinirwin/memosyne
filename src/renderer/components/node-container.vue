@@ -4,14 +4,12 @@
          class="node-children"
          tabindex="255">
         <div
-                v-for="(rootNode, index) in displayRootNodes$"
-                :key="rootNode.id">
+                v-for="(node, index) in nodes$"
+                :key="node.id">
             <node
-                    v-if="rootNode.visible"
-                    :node="rootNode"
-                    :siblings="displayRootNodes$.filter(n => n !== rootNode)"
-                    :colorList="colorList"
-                    :colorIndex="calcColorIndex(index)"
+                    v-if="node.visible"
+                    :node="node"
+                    :siblings="nodes$.filter(n => n !== node)"
             ></node>
         </div>
 
@@ -33,6 +31,12 @@
 
     export default {
         name: "node-container",
+        props: {
+            nodes$: {
+                type: BehaviorSubject,
+                required: true
+            }
+        },
         components: {Node},
         computed: {
         },
@@ -92,6 +96,7 @@
              */
             return {
                 displayRootNodes$: this.net.displayRootNodes$,
+                nodes$: this.nodes$
             };
         }
     }

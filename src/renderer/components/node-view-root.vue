@@ -17,7 +17,10 @@
         margin: 0; border-radius: 0px;"
                 class="card"
         ></navbar>
-        <node-container style="padding-top: 20vh;"></node-container>
+        <node-container
+                style="padding-top: 20vh;"
+                :rootNodes="displayRootNodes$"
+        ></node-container>
         <v-snackbar v-model="showUserMessages">
             <div v-for="userMessage in userMessages">
                 {{userMessage}}
@@ -32,7 +35,7 @@
     import NodeContainer from './node-container.vue';
     import showdown from 'showdown';
     import {map} from 'rxjs/operators';
-    import {HORIZONTAL_TREE, VERTICAL_TREE} from "../net";
+    import {HORIZONTAL_TREE, VERTICAL_TREE, SOURCE_LIST} from "../net";
 
     const converter = new showdown.Converter();
     converter.setOption('tables', true);
@@ -85,7 +88,7 @@
                     }
                 `;
                 document.body.appendChild(this.nodeOrientationSheet);
-            }
+            },
         },
         computed: {
             showUserMessages: {
@@ -100,12 +103,14 @@
         mounted() {
             document.converter = converter;
             this.userExperience.nodeLayout$.subscribe(v => {
-                switch(v) {
+                switch (v) {
                     case VERTICAL_TREE:
                         this.applyVerticalRules();
                         break;
                     case HORIZONTAL_TREE:
                         this.applyHorizontalRules();
+                        break;
+                    case SOURCE_LIST:
                         break;
                 }
             });

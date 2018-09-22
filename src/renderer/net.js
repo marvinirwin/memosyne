@@ -1553,7 +1553,7 @@ export class UserExperience {
          * @type {Subject<String>}
          */
         this.message$ = new BehaviorSubject('');
-        this.nodeLayout$ = new BehaviorSubject(HORIZONTAL_TREE);
+        this.nodeLayout$ = new BehaviorSubject(VERTICAL_TREE);
     }
 
     get accessToken() {

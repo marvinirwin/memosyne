@@ -22,15 +22,24 @@
         </div>
         <div style="display: flex; flex-flow: column nowrap; justify-content: space-between">
 
-            <button class="btn waves-effect"
+            <button class="waves-effect"
                     @click="userExperience.login(userExperience.email, userExperience.password)">Login
                 <i class="material-icons right">Login</i>
             </button>
-            <button class="btn waves-effect" @click="userExperience.logout()">Log out
+            <button class="waves-effect" @click="userExperience.logout()">Log out
                 <i class="material-icons right">Log out</i>
             </button>
-            <button @click="debug = !debug">
+            <button class="waves-effect"  @click="debug = !debug">
                 Toggle Debug
+            </button>
+            <button  class="waves-effect" @click="userExperience.nodeLayout$.next(VERTICAL_TREE)">
+                VERTICAL_TREE
+            </button>
+            <button  class="waves-effect" @click="userExperience.nodeLayout$.next(HORIZONTAL_TREE)">
+                HORIZONTAL_TREE
+            </button>
+            <button  class="waves-effect" @click="userExperience.nodeLayout$.next(SOURCE_LIST)">
+                SOURCE_LIST
             </button>
         </div>
         <ul class="collection" style="flex: 1; color: black; margin: 5px; overflow: auto;">
@@ -62,13 +71,18 @@
 
 <script>
     import {map} from 'rxjs/operators';
+    import {HORIZONTAL_TREE, SOURCE_LIST, VERTICAL_TREE} from "../net";
 
     export default {
         name: "navbar",
         mounted() {
         },
         data() {
-            return {}
+            return {
+                VERTICAL_TREE,
+            HORIZONTAL_TREE,
+            SOURCE_LIST,
+            }
         },
         filters: {
             displayLoadingObjects(a) {

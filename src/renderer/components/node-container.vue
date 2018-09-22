@@ -4,12 +4,12 @@
          class="node-children"
          tabindex="255">
         <div
-                v-for="(node, index) in nodes$"
+                v-for="(node, index) in sub_nodes$"
                 :key="node.id">
             <node
                     v-if="node.visible"
                     :node="node"
-                    :siblings="nodes$.filter(n => n !== node)"
+                    :siblings="sub_nodes$.filter(n => n !== node)"
             ></node>
         </div>
 
@@ -21,6 +21,7 @@
 <script>
     import Node from './node.vue';
     import {setFocusedInstance, sleep} from "../net";
+    import {BehaviorSubject} from 'rxjs';
 
     export const colorList = [
         '#DDDDDD',
@@ -95,8 +96,7 @@
              * @type {Net}
              */
             return {
-                displayRootNodes$: this.net.displayRootNodes$,
-                nodes$: this.nodes$
+                sub_nodes$: this.nodes$
             };
         }
     }

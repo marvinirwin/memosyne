@@ -28,6 +28,11 @@
 
     @import '../../node_modules/materialize-css/dist/css/materialize.css';
 
+
+    button:focus {
+        background-color: $secondary-color;
+    }
+
     .navbar {
         background-color: $primary-color-dark;
         color: white;
@@ -76,8 +81,8 @@
         display: flex;
         flex-flow: column nowrap;
         align-self: center;
-        min-width: 49vw;
-        max-width: 49vw;
+        /* Let's see if hardcoding the width like this is beneficial */
+        width: 500px;
     }
 
     .nucleus.persisted {

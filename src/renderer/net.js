@@ -21,6 +21,35 @@ const UrlEdgeRevisions = 'EdgeRevisions';
 const UrlDefaultSourceNodes = 'DefaultSourceNodes';
 const UrlUserSourceNodes = 'SourceNodes';
 
+const sourceNodeFilter = {
+    include: [
+        {
+            relation: 'vNestedSetsGraphs',
+            scope: {
+                where: {lft: 1},
+                order: ['lastModified DESC'],
+                include: [
+                    {
+                        relation: 'vNode',
+                        scope: {
+                            where: {visible: true, text: {neq: null}},
+                            order: ['lastModified DESC'],
+                            include: [
+                                {
+                                    relation: 'nodeRevisions',
+                                    scope: {
+                                        limit: 1,
+                                        order: ['createdTimestamp DESC'],
+                                    },
+                                }
+                            ],
+                        },
+                    },
+                ],
+            }
+        }
+    ],
+};
 const netFilter = {
     include: [
         {
@@ -92,9 +121,7 @@ const singleNodeFilter = {
 //          VNode -> VEdge
 function nodesBelowFilter(nodeId) {
     return {
-        include: [
-
-        ]
+        include: []
     }
 }
 
@@ -311,9 +338,6 @@ export class Node extends gen_Node {
         const predecessorEdges = this.predecessorEdges$.getValue();
         const nodes = this.net ? this.net.nodes : [];
 
-        /*        if (this.text && this.text.contains('love')) {
-                    debugger;console.log();
-                }*/
 
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
@@ -663,6 +687,13 @@ export class Net {
         this.recomputeDisplaySignal$.next();
     }
 
+    clear() {
+        this.nodes = [];
+        this.edges = [];
+        this.recomputeRelationSignal$.next();
+        this.recomputeDisplaySignal$.next();
+    }
+
     /**
      * This is what happens when you click on a node,
      * erases everyone and just selects one
@@ -936,7 +967,6 @@ export class Net {
      * @return {Promise<void>}
      */
     async addNodeHideToQue(nodes) {
-        debugger;
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
             /**
@@ -1189,7 +1219,6 @@ export class RequestHandler {
             result = await axios.post(resolveApiUrl(api, UrlNodes), new gen_Node(node));
             // Since we're creating a node we are definitely not
             result = await axios.get(resolveApiUrl(api, UrlVNodes, result.data.id), {params: {filter: singleNodeFilter}});
-            debugger;
             o.resolve();
         } catch (e) {
             o.reject(e);
@@ -1524,7 +1553,7 @@ export class UserExperience {
          * @type {Subject<String>}
          */
         this.message$ = new BehaviorSubject('');
-        this.nodeLayout$ = new BehaviorSubject(VERTICAL_TREE);
+        this.nodeLayout$ = new BehaviorSubject(HORIZONTAL_TREE);
     }
 
     get accessToken() {
@@ -1572,15 +1601,17 @@ export class UserExperience {
     }
 
     async getDefaultNet() {
+        this.net.clear();
         this.net.pushMessage("Getting default net");
         const result = await axios.get(resolveApiUrl(api, UrlDefaultUser), {params: {filter: netFilter}});
-        this.setNetFromResult(result)
+        this.loadNodesAndEdgeResultIntoNet(result)
     }
 
     async getUserNet() {
+        this.net.clear();
         this.net.pushMessage("Getting user net");
         const result = await axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: netFilter}});
-        this.setNetFromResult(result)
+        this.loadNodesAndEdgeResultIntoNet(result)
     }
 
     /**
@@ -1594,7 +1625,8 @@ export class UserExperience {
      * @return {Promise<void>}
      */
     async getDefaultSourceNodes() {
-        const result = await axios.get(resolveApiUrl(api, UrlDefaultSourceNodes), {params: {filter: netFilter}});
+        const result = await axios.get(resolveApiUrl(api, UrlDefaultUser), {params: {filter: sourceNodeFilter}});
+        this.loadSourceNodesIntoNet(result);
     }
 
     /**
@@ -1602,7 +1634,8 @@ export class UserExperience {
      * @return {Promise<void>}
      */
     async getUserSourceNodes() {
-        const result = await axios.get(resolveApiUrl(api, UrlUserSourceNodes), {params: {filter: netFilter}});
+        const result = await axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: sourceNodeFilter}});
+        this.loadSourceNodesIntoNet(result);
     }
 
     async checkLoginGetNodes() {
@@ -1628,10 +1661,10 @@ export class UserExperience {
         const loggedIn = await this.isAuthenticated();
         if (loggedIn) {
             this.pushMessage("Querying your net...");
-            await this.getUserNet();
+            this.getUserSourceNodes();
         } else {
             this.pushMessage("Not logged in, loading default network...");
-            await this.getDefaultNet();
+            await this.getDefaultSourceNodes();
         }
         await sleep(1)
     }
@@ -1666,8 +1699,29 @@ export class UserExperience {
         this.accessToken = "";
     }
 
-    setNetFromResult(result) {
-        this.net.pushMessage("Setting net from results");
+    loadSourceNodesIntoNet(result) {
+        if (!result || !result.data) {
+            this.net.sourceNodes$.next([]);
+            return;
+        }
+        const user = result.data.length ?
+            result.data[0] :
+            result.data;
+
+        /**
+         * @type {Node[]}
+         */
+        const nodes = user.vNodes.map(o => new Node(o));
+        /**
+         * @type {Edge[]}
+         */
+        // There should be a way to clear the net
+        nodes.map(sanitizeLoadedNode);
+        // TODO maybe merge the source nodes so we don't over-write already loaded source nodes
+        this.net.sourceNodes$.next(nodes);
+    }
+
+    loadNodesAndEdgeResultIntoNet(result) {
         if (!result || !result.data) {
             this.net.pushMessage("Bad results, net will be set to empty");
             this.net.nodes = [];

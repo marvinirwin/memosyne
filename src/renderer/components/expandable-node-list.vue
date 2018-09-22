@@ -21,6 +21,7 @@
 
 <script>
     import NodeContainer from './node-container.vue';
+    import {BehaviorSubject} from 'rxjs';
     export default {
         name: "expandable-node-list",
         props: {

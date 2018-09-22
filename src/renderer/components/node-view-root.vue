@@ -7,7 +7,6 @@
             </div>
         </div>
         <navbar style="
-        position: fixed;
         height: auto;
         white-space: pre;
         max-height: 20vh;
@@ -17,9 +16,12 @@
         margin: 0; border-radius: 0px;"
                 class="card"
         ></navbar>
+        <expandable-node-list v-if="nodeLayout$ === 'SOURCE_LIST'"
+                              nodes$="net.sourceNodes$">
+        </expandable-node-list>
         <node-container
-                style="padding-top: 20vh;"
-                :rootNodes="displayRootNodes$"
+                style="overflow: auto; max-height: 80vh;"
+                :nodes$="net.displayRootNodes$"
         ></node-container>
         <v-snackbar v-model="showUserMessages">
             <div v-for="userMessage in userMessages">
@@ -36,12 +38,13 @@
     import showdown from 'showdown';
     import {map} from 'rxjs/operators';
     import {HORIZONTAL_TREE, VERTICAL_TREE, SOURCE_LIST} from "../net";
+    import ExpandableNodeList from "./expandable-node-list";
 
     const converter = new showdown.Converter();
     converter.setOption('tables', true);
     export default {
         name: "node-view-root",
-        components: {NodeContainer, Navbar},
+        components: {ExpandableNodeList, NodeContainer, Navbar},
         data() {
             const el = document.createElement('style');
             document.body.appendChild(el);
@@ -104,13 +107,17 @@
             document.converter = converter;
             this.userExperience.nodeLayout$.subscribe(v => {
                 switch (v) {
-                    case VERTICAL_TREE:
+                    case SOURCE_LIST:
+                        this.userExperience.checkLoginGetSourceNodes();
                         this.applyVerticalRules();
                         break;
                     case HORIZONTAL_TREE:
+                        this.userExperience.checkLoginGetNodes();
                         this.applyHorizontalRules();
                         break;
-                    case SOURCE_LIST:
+                    case VERTICAL_TREE:
+                        this.userExperience.checkLoginGetNodes();
+                        this.applyVerticalRules();
                         break;
                 }
             });
@@ -124,24 +131,24 @@
                 }, 5000)
             });
 
-            this.applyHorizontalRules();
-            setTimeout(() => {
-                this.userExperience.nodeLayout$.next(VERTICAL_TREE);
-            }, 5000);
         },
         subscriptions() {
+            this.userExperience.nodeLayout$.subscribe(v => {
+                    switch (v) {
+                    }
+                }
+            );
             return {
-                lastMessages$: this.net.messages$.pipe(
-                    map(a => {
-                            const start = a.length - 10;
-                            const arr = start < 0 ?
-                                a :
-                                a.slice(start)
-                            return arr.map((str, index) =>
-                                index += ' ' + str
-                            )
-                        }
-                    )),
+                lastMessages$: this.net.messages$.pipe(map(a => {
+                    const start = a.length - 10;
+                    const arr = start < 0 ?
+                        a :
+                        a.slice(start)
+                    return arr.map((str, index) =>
+                        index += ' ' + str
+                    )
+                })),
+                nodeLayout$: this.userExperience.nodeLayout$,
             }
         },
     }

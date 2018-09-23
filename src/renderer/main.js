@@ -18,6 +18,9 @@ import {
     VSnackbar,
 } from 'vuetify/es5/components';
 
+import 'material-design-icons/iconfont/material-icons.css'
+import 'typeface-roboto/index.css';
+
 Vue.use(
     Vuetify, {
         components: {

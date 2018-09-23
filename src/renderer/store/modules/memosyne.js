@@ -32,7 +32,7 @@ const state = {
      * @return {boolean|*}
      */
     rootNodeFilter: (n) => {
-        return n.predecessorNodes.length === 0;
+        return n.predecessorNodes$.getValue().length === 0;
     },
     depthMarkNode: undefined,
     selectedNodes$: new BehaviorSubject([]),

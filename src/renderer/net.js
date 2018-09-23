@@ -26,8 +26,8 @@ const sourceNodeFilter = {
         {
             relation: 'vNestedSetsGraphs',
             scope: {
-                where: {lft: 1},
-                order: ['lastModified DESC'],
+                where: {lft: 1, text: {neq: null}},
+                order: ['sourceId DESC'],
                 include: [
                     {
                         relation: 'vNode',
@@ -121,9 +121,39 @@ const singleNodeFilter = {
 //          VNode -> VEdge
 function nodesBelowFilter(nodeId) {
     return {
-        include: []
+        include: [
+            {
+                relation: 'vNestedSetsGraphs',
+                scope: {
+                    where: {node_id: nodeId},
+                    include: [
+                        {
+                            relation: 'vNode',
+                            scope: {
+                                where: {visible: true, text: {neq: null}},
+                                order: ['lastModified DESC'],
+                                include: [
+                                    {
+                                        relation: 'nodeRevisions',
+                                        scope: {
+                                            limit: 1,
+                                            order: ['createdTimestamp DESC'],
+                                        },
+                                    }
+                                ],
+                            },
+                        },
+                    ],
+                }
+            }
+        ]
     }
 }
+
+
+// In order to get the nodes below we need two things
+// First our entry in the NestedSetsGraph
+// Second all the nodes between the lft and rgt values
 
 /**
  * @param n {Edge}
@@ -189,13 +219,13 @@ export class Node extends gen_Node {
     constructor(o) {
         super(o);
         /**
-         * @type {Node[]}
+         * @type {BehaviorSubject<Node[]>}
          */
-        this.predecessorNodes = [];
+        this.predecessorNodes$ = new BehaviorSubject([]);
         /**
-         * @type {Node[]}
+         * @type {BehaviorSubject<Node[]>}
          */
-        this.successorNodes = [];
+        this.successorNodes$ = new BehaviorSubject([]);
         /**
          * @type {Vue[]}
          */
@@ -246,8 +276,25 @@ export class Node extends gen_Node {
          */
         this.net = undefined;
 
+        /**
+         * If there are potentially unloaded children of this node
+         * @type {BehaviorSubject<Boolean>}
+         */
+        this.childrenLoaded$ = new BehaviorSubject(false);
+
+        /**
+         * If the UI is expanded
+         * @type {BehaviorSubject<boolean>}
+         */
+        this.expanded$ = new BehaviorSubject(false);
 
         this.persisted = false;
+
+        /**
+         * The total number of children we have, currently only used when the node is a source
+         * @type {number}
+         */
+        this.childCount = 0;
 
         // If we get any edges check if any of them belong to us and put them into successorEdges
 
@@ -344,14 +391,18 @@ export class Node extends gen_Node {
             for (let j = 0; j < successorEdges.length; j++) {
                 const successorEdge = successorEdges[j];
                 if (successorEdge.n2 === node.id) {
-                    this.successorNodes.push(node);
+                    if (!this.successorNodes$.getValue().concat) {
+                        debugger;
+                        console.log();
+                    }
+                    this.successorNodes$.next(this.successorNodes$.getValue().concat(node));
                     successorEdge.nodeEnd = node;
                 }
             }
             for (let j = 0; j < predecessorEdges.length; j++) {
                 const predecessorEdge = predecessorEdges[j];
                 if (predecessorEdge.n1 === node.id) {
-                    this.predecessorNodes.push(node);
+                    this.predecessorNodes$.next(this.predecessorNodes$.getValue().concat(node));
                     predecessorEdge.nodeStart = node;
                 }
             }
@@ -1017,6 +1068,7 @@ export class Net {
         return {node: newNode, edges: newEdges};
     }
 
+
 }
 
 export class LoadingObjectList {
@@ -1553,7 +1605,7 @@ export class UserExperience {
          * @type {Subject<String>}
          */
         this.message$ = new BehaviorSubject('');
-        this.nodeLayout$ = new BehaviorSubject(VERTICAL_TREE);
+        this.nodeLayout$ = new BehaviorSubject(SOURCE_LIST);
     }
 
     get accessToken() {
@@ -1711,12 +1763,21 @@ export class UserExperience {
         /**
          * @type {Node[]}
          */
-        const nodes = user.vNodes.map(o => new Node(o));
+        const nodes = user.vNestedSetsGraphs.filter(g => {
+            return g.vNode
+        }).map(g => {
+            const n = new Node(g.vNode);
+            n.childCount = (g.rgt - g.lft) / 2;
+            sanitizeLoadedNode(n);
+            n.setNet(this.net);
+            n.expanded$.next(true);
+            n.childrenLoaded$.next(true);
+            return n
+        });
         /**
          * @type {Edge[]}
          */
         // There should be a way to clear the net
-        nodes.map(sanitizeLoadedNode);
         // TODO maybe merge the source nodes so we don't over-write already loaded source nodes
         this.net.sourceNodes$.next(nodes);
     }
@@ -1735,7 +1796,14 @@ export class UserExperience {
         /**
          * @type {Node[]}
          */
-        const nodes = user.vNodes.map(o => new Node(o));
+        const nodes = user.vNodes.map(o => {
+            const n = new Node(o);
+            // When loaded as a net all results are loaded for now,
+            // and expanded by default
+            n.expanded$.next(true);
+            n.childrenLoaded$.next(true);
+            return n;
+        });
         /**
          * @type {Edge[]}
          */
@@ -1744,6 +1812,62 @@ export class UserExperience {
         nodes.map(sanitizeLoadedNode);
         edges.map(sanitizeLoadedEdge);
         this.net.addNodesAndEdges(nodes, edges);
+    }
+
+    /**
+     *
+     * @param node {Node}
+     * @return {Promise<void>}
+     */
+    async loadUserNodeDescendants(node) {
+        const treeFilter = {
+            include: [
+                {
+                    relation: 'vNestedSetsGraphs',
+                    scope: {
+                        where: {
+                            node_id: node.id
+                        }
+                    }
+                }
+            ]
+        };
+        const netResult = await axios.get(resolveApiUrl(UrlUsers, this.userId, {params: {filter: treeFilter}}))
+        const net = netResult.data.user.vNestedSetsGraphs;
+        const nodeFilter = {
+            include: [
+                {
+                    relation: 'vNestedSetsGraphs',
+                    scope: {
+                        where: {lft: {gt : net.lft}, rgt: {lt: net.rgt}, text: {neq: null}},
+                        order: ['sourceId DESC'],
+                        include: [
+                            {
+                                relation: 'vNode',
+                                scope: {
+                                    where: {visible: true, text: {neq: null}},
+                                    order: ['lastModified DESC'],
+                                    include: [
+                                        {
+                                            relation: 'nodeRevisions',
+                                            scope: {
+                                                limit: 1,
+                                                order: ['createdTimestamp DESC'],
+                                            },
+                                        }
+                                    ],
+                                },
+                            },
+                        ],
+                    }
+                }
+            ],
+        };
+        const nodeResult = await axios.get(resolveApiUrl(UrlUsers, this.userId, {params: {filter: nodeFilter}}));
+
+    }
+
+    async loadDefaultUserNodeDescendants(node) {
 
     }
 

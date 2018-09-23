@@ -23,23 +23,24 @@
         <div style="display: flex; flex-flow: column nowrap; justify-content: space-between">
 
             <button class="waves-effect"
-                    @click="userExperience.login(userExperience.email, userExperience.password)">Login
+                    @click="userExperience.login(userExperience.email, userExperience.password)">
                 <i class="material-icons right">Login</i>
             </button>
-            <button class="waves-effect" @click="userExperience.logout()">Log out
+            <button class="waves-effect" @click="userExperience.logout()">
                 <i class="material-icons right">Log out</i>
             </button>
             <button class="waves-effect"  @click="debug = !debug">
-                Toggle Debug
+                <i class="material-icons right">Log out</i>
             </button>
             <button  class="waves-effect" @click="userExperience.nodeLayout$.next(VERTICAL_TREE)">
-                VERTICAL_TREE
+                <i class="material-icons right">VERTICAL_TREE</i>
             </button>
             <button  class="waves-effect" @click="userExperience.nodeLayout$.next(HORIZONTAL_TREE)">
-                HORIZONTAL_TREE
+
+                <i class="material-icons right">HORIZONTAL_TREE</i>
             </button>
             <button  class="waves-effect" @click="userExperience.nodeLayout$.next(SOURCE_LIST)">
-                SOURCE_LIST
+                <i class="material-icons right">SOURCE_LIST</i>
             </button>
         </div>
         <ul class="collection" style="flex: 1; color: black; margin: 5px; overflow: auto;">

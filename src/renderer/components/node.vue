@@ -22,6 +22,14 @@
                 <span>{{
                     node.latestRevision$.getValue() &&
                     node.latestRevision$.getValue().m_createdTimestamp.format('dddd, MMMM Do YYYY')}}</span>
+                <button class="btn-floating btn-small">
+                    <i class="material-icons "
+                       @click="net.addNodeHideToQue([node])">cancel</i>
+                </button>
+                <button v-if="expandable$">
+                    <i class="material-icons right"
+                       @click="net.expandNode(node)">Expand</i>
+                </button>
             </div>
             <!--             @click="setSelectedNodes({nodes: [node]})"-->
             <textarea
@@ -55,8 +63,8 @@
                  ref="attrs"
                  tabindex="0" v-if="debug">
                 <div>
-                    <span>Predecessor length: {{node.predecessorNodes.length}}</span>
-                    <span>Successor length: {{node.successorNodes.length}}</span>
+                    <span>Predecessor length: {{predecessorNodes$.length}}</span>
+                    <span>Successor length: {{successorNodes$.length}}</span>
                 </div>
                 <div>
                     <span>Predecessor edges length: {{predecessorEdges$.length}}</span>
@@ -73,12 +81,12 @@
 
         <div class="node-children">
             <node
-                    v-for="(child, index) in node.successorNodes"
+                    v-for="(child, index) in successorNodes$"
                     v-if="node.visible"
                     :ref="'child' + index"
                     :key="child.id"
                     :node="child"
-                    :siblings="node.successorNodes.filter(n => n !== child)"
+                    :siblings="successorNodes$.filter(n => n !== child)"
             ></node>
         </div>
     </div>
@@ -88,6 +96,7 @@
     import {debounce} from 'lodash';
     import {mapMutations, mapActions} from 'vuex';
     import {Node, scrollUpElement} from '../net.js';
+    import {map} from 'rxjs/operators';
 
     export default {
         name: "node",
@@ -128,14 +137,14 @@
                 type: Array,
                 required: true
             },
-/*            colorList: {
-                type: Array,
-                required: true
-            },
-            colorIndex: {
-                type: Number,
-                required: true
-            }*/
+            /*            colorList: {
+                            type: Array,
+                            required: true
+                        },
+                        colorIndex: {
+                            type: Number,
+                            required: true
+                        }*/
         },
         data() {
             return {
@@ -147,10 +156,10 @@
         methods: {
             calcChildIndex() {
                 return 0;
-/*                return (this.colorIndex + 1) > this.colorList.length - 1 ?
-                    0 :
-                    this.colorIndex + 1
-                    ;*/
+                /*                return (this.colorIndex + 1) > this.colorList.length - 1 ?
+                                    0 :
+                                    this.colorIndex + 1
+                                    ;*/
             },
             /**
              * e {ScrollEvent}
@@ -190,9 +199,9 @@
                 }
                 if (event.key === "Escape") {
                     this.net.handleHotkeyPress(this, this.node, event);
-/*                    this.node.net.removePreEditingNode(this.node);
-                    this.node.net.setPreEditingNode(this.node);
-                    this.$refs.nucleus.focus();*/
+                    /*                    this.node.net.removePreEditingNode(this.node);
+                                        this.node.net.setPreEditingNode(this.node);
+                                        this.$refs.nucleus.focus();*/
                 }
 
                 if (event.ctrlKey && event.key === "Enter") {
@@ -256,11 +265,16 @@
              */
             const node = this.node;
             return {
+                expandable$: node.expandable$,
                 groupSelected$: node.groupSelected$,
                 editSelected$: node.editSelected$,
                 preEditSelected$: node.preEditSelected$,
                 predecessorEdges$: node.predecessorEdges$,
                 successorEdges$: node.successorEdges$,
+                successorNodes$: node.successorNodes$.pipe(map(nodes => {
+                   return nodes.sort(function(a, b) {return a.createdTimestamp - b.createdTimestamp})
+                })),
+                predecessorNodes$: node.predecessorNodes$
             }
         },
     }

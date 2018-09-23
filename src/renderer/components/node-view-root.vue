@@ -17,7 +17,7 @@
                 class="card"
         ></navbar>
         <expandable-node-list v-if="nodeLayout$ === 'SOURCE_LIST'"
-                              nodes$="net.sourceNodes$">
+                              :nodes$="net.sourceNodes$">
         </expandable-node-list>
         <node-container
                 style="overflow: auto; max-height: 80vh;"

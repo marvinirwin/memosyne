@@ -1,18 +1,17 @@
 <template>
-    <div>
-        <div v-for="node in nodes$" @click="expandNode(node)">
-            <div>{{node.lastModified}}</div>
+    <div style="display: flex; flex-flow: column nowrap;">
+        <div v-for="node in sub_nodes$" @click="expandNode(node)" class="nucleus card-panel">
+            <div>{{node.id}}</div>
             <div>{{node.text}}</div>
-            <div>{{node.count}}</div>
+            <div>{{node.childCount}}</div>
             <div v-if="node.expanded">
                 <div v-if="node.loading">
                     <!-- TODO put a loading screen here -->
                     loading...
                 </div>
                 <node-container
-                        :rootNodes="[node]"
+                        :nodes$="node.successorNodes$"
                 >
-
                 </node-container>
             </div>
         </div>
@@ -35,7 +34,7 @@
         },
         subscriptions() {
             return {
-                nodes$: this.nodes$
+                sub_nodes$: this.nodes$
             }
         },
         methods: {

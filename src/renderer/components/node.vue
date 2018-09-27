@@ -4,7 +4,6 @@
          ref="root"
          v-show="latestRevision.visible"
     >
-
         <div class="nucleus card-panel"
              :class="{
              groupSelected: groupSelected$,
@@ -17,11 +16,30 @@
              tabindex="99"
              ref="nucleus"
              @click="handleClick($event)"
+             style="position: relative;"
         >
+            <!--            <button class="btn-floating btn-small"
+                                style="position: absolute; align-self: center; justify-self: center" >
+                            <i class="material-icons "
+                               @click="net.addNodeHideToQue([node])">cancel</i>
+                        </button>
+                        <button class="btn-floating btn-small"
+                                style="position: absolute;  ;" >
+                            <i class="material-icons "
+                               @click="net.addNodeHideToQue([node])">cancel</i>
+                        </button>
+                        <button class="btn-floating btn-small"
+                                style="position: absolute;  align-self: center;" >
+                            <i class="material-icons "
+                               @click="net.addNodeHideToQue([node])">cancel</i>
+                        </button>
+                        <button class="btn-floating btn-small"
+                                style="position: absolute;  align-self: center;" >
+                            <i class="material-icons "
+                               @click="net.addNodeHideToQue([node])">cancel</i>
+                        </button>-->
             <div>
-                <span>{{
-                    node.latestRevision$.getValue() &&
-                    node.latestRevision$.getValue().m_createdTimestamp.format('dddd, MMMM Do YYYY')}}</span>
+                <span>{{formattedTimestamp}}</span>
                 <button class="btn-floating btn-small">
                     <i class="material-icons "
                        @click="net.addNodeHideToQue([node])">cancel</i>
@@ -53,7 +71,6 @@
                     class="classification"
                     placeholder="classification"
                     v-model="node.classification">
-
             <div class="selectable" v-if="debug">
                 <div ref="selectEl">
                     Select
@@ -78,7 +95,6 @@
                 </div>
             </div>
         </div>
-
         <div class="node-children">
             <node
                     v-for="(child, index) in successorNodes$"
@@ -251,7 +267,16 @@
             },
             scrollUpElement,
         },
-        computed: {},
+        computed: {
+            formattedTimestamp() {
+                if (!this.latestRevision$ ||
+                    !this.latestRevision$.m_createdTimestamp) {
+                    return 'Not created'
+                } else {
+                    return this.latestRevision$.m_createdTimestamp.format('dddd, MMMM Do YYYY');
+                }
+            }
+        },
         watch: {
             /*            selected() {
                             if (!this.selected) {
@@ -265,16 +290,20 @@
              */
             const node = this.node;
             return {
-                expandable$: node.expandable$,
+                // TOOD add expanded$ as a property of the node Class,
+                // or maybe of just the Vue component
+                expandable$: node.groupSelected$,
                 groupSelected$: node.groupSelected$,
                 editSelected$: node.editSelected$,
                 preEditSelected$: node.preEditSelected$,
                 predecessorEdges$: node.predecessorEdges$,
                 successorEdges$: node.successorEdges$,
                 successorNodes$: node.successorNodes$.pipe(map(nodes => {
-                   return nodes.sort(function(a, b) {return a.createdTimestamp - b.createdTimestamp})
+                    return nodes.sort(function (a, b) {
+                        return a.createdTimestamp - b.createdTimestamp
+                    })
                 })),
-                predecessorNodes$: node.predecessorNodes$
+                latestRevision$: node.latestRevision$
             }
         },
     }

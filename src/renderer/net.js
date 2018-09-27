@@ -150,7 +150,6 @@ function nodesBelowFilter(nodeId) {
     }
 }
 
-
 // In order to get the nodes below we need two things
 // First our entry in the NestedSetsGraph
 // Second all the nodes between the lft and rgt values

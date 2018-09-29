@@ -98,6 +98,18 @@ const nodeListFilter = {
                             limit: 1,
                             order: ['createdTimestamp DESC'],
                         },
+                    },
+                    {
+                        relation: 'outgoingVEdge',
+                        include: [
+                            {
+                                relation: 'edgeRevisions',
+                                scope: {
+                                    limit: 1,
+                                    order: ['createdTimestamp DESC'],
+                                },
+                            }
+                        ]
                     }
                 ],
             },
@@ -139,6 +151,18 @@ function nodesBelowFilter(nodeId) {
                                             limit: 1,
                                             order: ['createdTimestamp DESC'],
                                         },
+                                    },
+                                    {
+                                        relation: 'outgoingVEdges',
+                                        include: [
+                                            {
+                                                relation: 'edgeRevisions',
+                                                scope: {
+                                                    limit: 1,
+                                                    order: ['createdTimestamp DESC'],
+                                                },
+                                            }
+                                        ]
                                     }
                                 ],
                             },
@@ -1819,7 +1843,7 @@ export class UserExperience {
      * @return {Promise<void>}
      */
     async loadUserNodeDescendants(node) {
-        const treeFilter = {
+/*        const treeFilter = {
             include: [
                 {
                     relation: 'vNestedSetsGraphs',
@@ -1832,38 +1856,11 @@ export class UserExperience {
             ]
         };
         const netResult = await axios.get(resolveApiUrl(UrlUsers, this.userId, {params: {filter: treeFilter}}))
-        const net = netResult.data.user.vNestedSetsGraphs;
-        const nodeFilter = {
-            include: [
-                {
-                    relation: 'vNestedSetsGraphs',
-                    scope: {
-                        where: {lft: {gt : net.lft}, rgt: {lt: net.rgt}, text: {neq: null}},
-                        order: ['sourceId DESC'],
-                        include: [
-                            {
-                                relation: 'vNode',
-                                scope: {
-                                    where: {visible: true, text: {neq: null}},
-                                    order: ['lastModified DESC'],
-                                    include: [
-                                        {
-                                            relation: 'nodeRevisions',
-                                            scope: {
-                                                limit: 1,
-                                                order: ['createdTimestamp DESC'],
-                                            },
-                                        }
-                                    ],
-                                },
-                            },
-                        ],
-                    }
-                }
-            ],
-        };
-        const nodeResult = await axios.get(resolveApiUrl(UrlUsers, this.userId, {params: {filter: nodeFilter}}));
-
+        const net = netResult.data.user.vNestedSetsGraphs;*/
+        const nodeFilter = nodesBelowFilter(node.id);
+        const nodeResult = await axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: nodeFilter}});
+        debugger;
+        return nodeResult;
     }
 
     async loadDefaultUserNodeDescendants(node) {

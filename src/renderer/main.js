@@ -74,3 +74,5 @@ new Vue({
     store,
     template: '<App/>'
 }).$mount('#app');
+
+userExperience.loadUserNodeDescendants({id: 1});

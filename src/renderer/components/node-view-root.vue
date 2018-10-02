@@ -16,10 +16,10 @@
         margin: 0; border-radius: 0px;"
                 class="card"
         ></navbar>
-        <expandable-node-list v-if="nodeLayout$ === 'SOURCE_LIST'"
+        <node-container v-if="nodeLayout$ === 'SOURCE_LIST'"
                               :nodes$="net.sourceNodes$">
-        </expandable-node-list>
-        <node-container
+        </node-container>
+        <node-container v-else
                 style="overflow: auto; max-height: 80vh;"
                 :nodes$="net.displayRootNodes$"
         ></node-container>

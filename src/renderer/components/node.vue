@@ -266,6 +266,12 @@
                 this.net.handleHotkeyPress(this, this.node, event);
             },
             scrollUpElement,
+            expandNode(n) {
+                (async () => {
+                    this.userExperience.pushMessage("Loading descendants of " + n.text);
+                    this.userExperience.loadSourceNodesIntoNet(await this.userExperience.loadUserNodeDescendants(n));
+                })()
+            },
         },
         computed: {
             formattedTimestamp() {

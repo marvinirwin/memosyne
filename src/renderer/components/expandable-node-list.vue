@@ -1,6 +1,8 @@
 <template>
     <div style="display: flex; flex-flow: column nowrap;">
-        <div v-for="node in sub_nodes$" @click="expandNode(node)" class="nucleus card-panel">
+        <div v-for="node in sub_nodes$"
+             @click="expandNode(node)"
+             class="nucleus card-panel source-node">
             <div>{{node.id}}</div>
             <div>{{node.text}}</div>
             <div>{{node.childCount}}</div>
@@ -21,6 +23,7 @@
 <script>
     import NodeContainer from './node-container.vue';
     import {BehaviorSubject} from 'rxjs';
+
     export default {
         name: "expandable-node-list",
         props: {
@@ -39,7 +42,10 @@
         },
         methods: {
             expandNode(n) {
-                // TODO query all the nodes and edges below this one in the nestedSetsGraph
+                (async () => {
+                    this.userExperience.pushMessage("Loading descendants of " + n.text);
+                    this.userExperience.loadSourceNodesIntoNet(await this.userExperience.loadUserNodeDescendants(n));
+                })()
             }
         }
     }

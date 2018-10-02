@@ -231,7 +231,7 @@
                 this.markdown = document.converter.makeHtml(this.node.text);
                 // Record the scrollHeight of our markdown when we can,
                 // so that when we show the text area it has an idea of how big to make itself
-                setTimeout(() => {
+                this.$nextTick(() => {
                     if (this.node.visible) {
 
                     }

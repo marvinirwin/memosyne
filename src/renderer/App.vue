@@ -28,11 +28,16 @@
 
     @import '../../node_modules/materialize-css/dist/css/materialize.css';
 
-
-
     button:focus {
         background-color: $secondary-color;
     }
+
+    .source-node:hover {
+        -webkit-box-shadow: 1px 1px;
+        -moz-box-shadow: 1px 1px;
+        box-shadow: 1px 1px;
+    }
+
 
     .navbar {
         background-color: $primary-color-dark;

@@ -75,4 +75,4 @@ new Vue({
     template: '<App/>'
 }).$mount('#app');
 
-userExperience.loadUserNodeDescendants({id: 1});
+// userExperience.loadUserNodeDescendants({id: 1});

@@ -137,7 +137,7 @@ function nodesBelowFilter(nodeId) {
             {
                 relation: 'vNestedSetsGraphs',
                 scope: {
-                    where: {node_id: nodeId},
+                    where: {nodeId},
                     include: [
                         {
                             relation: 'vNode',
@@ -161,9 +161,9 @@ function nodesBelowFilter(nodeId) {
                                                     limit: 1,
                                                     order: ['createdTimestamp DESC'],
                                                 },
-                                            }
-                                        ]
-                                    }
+                                            },
+                                        ],
+                                    },
                                 ],
                             },
                         },
@@ -245,6 +245,11 @@ export class Node extends gen_Node {
          * @type {BehaviorSubject<Node[]>}
          */
         this.predecessorNodes$ = new BehaviorSubject([]);
+        /**
+         * True if successor nodes are present
+         * @type {boolean}
+         */
+        this.loading = false;
         /**
          * @type {BehaviorSubject<Node[]>}
          */
@@ -402,8 +407,6 @@ export class Node extends gen_Node {
     }
 
     assignSuccessorAndPredecessorNodes() {
-        this.successorNodes = [];
-        this.predecessorNodes = [];
         const successorEdges = this.successorEdges$.getValue();
         const predecessorEdges = this.predecessorEdges$.getValue();
         const nodes = this.net ? this.net.nodes : [];
@@ -1628,7 +1631,7 @@ export class UserExperience {
          * @type {Subject<String>}
          */
         this.message$ = new BehaviorSubject('');
-        this.nodeLayout$ = new BehaviorSubject(SOURCE_LIST);
+        this.nodeLayout$ = new BehaviorSubject(VERTICAL_TREE);
     }
 
     get accessToken() {
@@ -1774,6 +1777,40 @@ export class UserExperience {
         this.accessToken = "";
     }
 
+    loadSourceDescendantsIntoNet(result) {
+        if (!result || !result.data) {
+            this.net.sourceNodes$.next([]);
+            return;
+        }
+        const user = result.data.length ?
+            result.data[0] :
+            result.data;
+
+        const graphNodes = user.vNestedSetsGraphs.filter(g => {
+            return g.vNode;
+        });
+
+        const nodes = [];
+        const edges = [];
+        for (let i = 0; i < graphNodes.length; i++) {
+            const graphNode = graphNodes[i];
+            const node = new Node(graphNode);
+            sanitizeLoadedNode(node);
+            node.childrenLoaded$.next(true);
+            nodes.push(node);
+
+            for (let j = 0; j < graphNodes.outgoingVedges.length; j++) {
+                const graphOutoingVedge = graphNodes.outgoingVedges[j];
+                const edge = new Edge(graphOutoingVedge);
+                sanitizeLoadedEdge(edge);
+                edges.push(edge);
+            }
+        }
+
+
+        this.net.addNodesAndEdges(nodes, edges);
+    }
+
     loadSourceNodesIntoNet(result) {
         if (!result || !result.data) {
             this.net.sourceNodes$.next([]);
@@ -1783,26 +1820,30 @@ export class UserExperience {
             result.data[0] :
             result.data;
 
-        /**
-         * @type {Node[]}
-         */
-        const nodes = user.vNestedSetsGraphs.filter(g => {
-            return g.vNode
-        }).map(g => {
-            const n = new Node(g.vNode);
-            n.childCount = (g.rgt - g.lft) / 2;
+        const graphNodes = user.vNestedSetsGraphs.filter(g => {
+            return g.vNode;
+        });
+
+        const nodes = [];
+        for (let i = 0; i < graphNodes.length; i++) {
+            const graphNode = graphNodes[i];
+
+            const n = new Node(graphNode);
+            n.childCount = (graphNode.rgt - graphNode.lft) / 2;
             sanitizeLoadedNode(n);
             n.setNet(this.net);
-            n.expanded$.next(true);
-            n.childrenLoaded$.next(true);
-            return n
-        });
+            n.expanded$.next(false);
+            n.childrenLoaded$.next(false);
+            nodes.push(n);
+        }
+
         /**
          * @type {Edge[]}
          */
         // There should be a way to clear the net
         // TODO maybe merge the source nodes so we don't over-write already loaded source nodes
         this.net.sourceNodes$.next(nodes);
+
     }
 
     loadNodesAndEdgeResultIntoNet(result) {
@@ -1843,23 +1884,22 @@ export class UserExperience {
      * @return {Promise<void>}
      */
     async loadUserNodeDescendants(node) {
-/*        const treeFilter = {
-            include: [
-                {
-                    relation: 'vNestedSetsGraphs',
-                    scope: {
-                        where: {
-                            node_id: node.id
+        /*        const treeFilter = {
+                    include: [
+                        {
+                            relation: 'vNestedSetsGraphs',
+                            scope: {
+                                where: {
+                                    node_id: node.id
+                                }
+                            }
                         }
-                    }
-                }
-            ]
-        };
-        const netResult = await axios.get(resolveApiUrl(UrlUsers, this.userId, {params: {filter: treeFilter}}))
-        const net = netResult.data.user.vNestedSetsGraphs;*/
+                    ]
+                };
+                const netResult = await axios.get(resolveApiUrl(UrlUsers, this.userId, {params: {filter: treeFilter}}))
+                const net = netResult.data.user.vNestedSetsGraphs;*/
         const nodeFilter = nodesBelowFilter(node.id);
         const nodeResult = await axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: nodeFilter}});
-        debugger;
         return nodeResult;
     }
 
@@ -1882,4 +1922,28 @@ export class UserExperience {
         axios.defaults.params['access_token'] = localStorage.getItem('access_token');
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

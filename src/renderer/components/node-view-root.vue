@@ -17,11 +17,11 @@
                 class="card"
         ></navbar>
         <node-container v-if="nodeLayout$ === 'SOURCE_LIST'"
-                              :nodes$="net.sourceNodes$">
+                        :nodes$="net.sourceNodes$">
         </node-container>
         <node-container v-else
-                style="overflow: auto; max-height: 80vh;"
-                :nodes$="net.displayRootNodes$"
+                        style="overflow: auto; max-height: 80vh;"
+                        :nodes$="net.displayRootNodes$"
         ></node-container>
         <v-snackbar v-model="showUserMessages">
             <div v-for="userMessage in userMessages">
@@ -106,20 +106,25 @@
         mounted() {
             document.converter = converter;
             this.userExperience.nodeLayout$.subscribe(v => {
-                switch (v) {
-                    case SOURCE_LIST:
-                        this.userExperience.checkLoginGetSourceNodes();
-                        this.applyVerticalRules();
-                        break;
-                    case HORIZONTAL_TREE:
-                        this.userExperience.checkLoginGetNodes();
-                        this.applyHorizontalRules();
-                        break;
-                    case VERTICAL_TREE:
-                        this.userExperience.checkLoginGetNodes();
-                        this.applyVerticalRules();
-                        break;
-                }
+                (async () => {
+                    switch (v) {
+                        case SOURCE_LIST:
+                            this.net.clear();
+                            await this.userExperience.checkLoginGetSourceNodes();
+                            this.applyVerticalRules();
+                            break;
+                        case HORIZONTAL_TREE:
+                            this.net.clear();
+                            await this.userExperience.checkLoginGetNodes();
+                            this.applyHorizontalRules();
+                            break;
+                        case VERTICAL_TREE:
+                            this.net.clear();
+                            this.applyVerticalRules();
+                            await this.userExperience.checkLoginGetNodes();
+                            break;
+                    }
+                })();
             });
             this.userExperience.message$.subscribe(v => {
                 this.userMessages.push(v);

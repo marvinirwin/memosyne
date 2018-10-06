@@ -1739,7 +1739,7 @@ export class UserExperience {
         const loggedIn = await this.isAuthenticated();
         if (loggedIn) {
             this.pushMessage("Querying your net...");
-            this.getUserSourceNodes();
+            await this.getUserSourceNodes();
         } else {
             this.pushMessage("Not logged in, loading default network...");
             await this.getDefaultSourceNodes();

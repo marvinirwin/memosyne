@@ -39,8 +39,7 @@
             }
         },
         components: {Node},
-        computed: {
-        },
+        computed: {},
         data() {
             return {
                 colorList

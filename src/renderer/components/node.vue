@@ -18,36 +18,23 @@
              @click="handleClick($event)"
              style="position: relative;"
         >
-            <!--            <button class="btn-floating btn-small"
-                                style="position: absolute; align-self: center; justify-self: center" >
-                            <i class="material-icons "
-                               @click="net.addNodeHideToQue([node])">cancel</i>
-                        </button>
-                        <button class="btn-floating btn-small"
-                                style="position: absolute;  ;" >
-                            <i class="material-icons "
-                               @click="net.addNodeHideToQue([node])">cancel</i>
-                        </button>
-                        <button class="btn-floating btn-small"
-                                style="position: absolute;  align-self: center;" >
-                            <i class="material-icons "
-                               @click="net.addNodeHideToQue([node])">cancel</i>
-                        </button>
-                        <button class="btn-floating btn-small"
-                                style="position: absolute;  align-self: center;" >
-                            <i class="material-icons "
-                               @click="net.addNodeHideToQue([node])">cancel</i>
-                        </button>-->
             <div>
                 <span>{{formattedTimestamp}}</span>
-                <button class="btn-floating btn-small">
-                    <i class="material-icons "
-                       @click="net.addNodeHideToQue([node])">cancel</i>
+                <button class="cbutton cbutton--effect-simo" :class="{'cbutton--click': !latestRevision.visible}"
+                        @click="net.addNodeHideToQue([node])">
+                    <i class="material-icons">cancel</i>
                 </button>
-                <button v-if="expandable$">
-                    <i class="material-icons right"
-                       @click="net.expandNode(node)">Expand</i>
+                <button class="cbutton cbutton--effect-simo" :class="{'cbutton--click': creatingChild}"
+                        @click="handleCreateChildClick()">
+                    <i class="material-icons">note_add</i>
                 </button>
+                <i class="material-icons" v-if="groupSelected$">center_focus_weak</i>
+                <i class="material-icons" v-if="preEditSelected$">more_horiz</i>
+                <i class="material-icons" v-if="editSelected$">edit</i>
+                <i class="material-icons" v-if="latestRevision.persisted">check</i>
+                <i class="material-icons" v-if="!latestRevision.persisted">clear</i>
+
+                <!--                <i class="material-icons" @click="net.expandNode(node)">Expand</i>-->
             </div>
             <!--             @click="setSelectedNodes({nodes: [node]})"-->
             <textarea
@@ -167,9 +154,18 @@
                 markdown: '',
                 markdownScrollHeight: 0,
                 latestRevision: {},
+                creatingChild: false
             }
         },
         methods: {
+            handleNodeHideClick() {
+
+            },
+            async handleCreateChildClick() {
+                this.creatingChild = true;
+                await this.net.createNode([this]);
+                this.creatingChild = false;
+            },
             calcChildIndex() {
                 return 0;
                 /*                return (this.colorIndex + 1) > this.colorList.length - 1 ?
@@ -232,9 +228,6 @@
                 // Record the scrollHeight of our markdown when we can,
                 // so that when we show the text area it has an idea of how big to make itself
                 this.$nextTick(() => {
-                    if (this.node.visible) {
-
-                    }
                     this.markdownScrollHeight = this.$refs.markdown.scrollHeight;
                     this.fitTextArea();
                 });
@@ -242,22 +235,9 @@
             fitTextArea() {
                 if (this.markdownScrollHeight === 0) return;
                 const tArea = this.$refs.textarea;
-                // const markdown = this.$refs.markdown;
-
-                /*                const nucleus = this.$refs.nucleus;
-                                const hLimit = window.innerHeight * 0.75;*/
 
                 tArea.style.height = this.markdownScrollHeight + "px";
                 tArea.style.minHeight = '16px';
-                // this.net.pushMessage(`Markdown scroll height ${this.markdownScrollHeight}`);
-
-                /*                if (!this.editSelected$) {
-                                    /!*                    tArea.style.height = markdown.scrollHeight + "px"; *!/
-                                } else {
-                                    tArea.style.height = markdown.scrollHeight + "px";
-                                    tArea.style.minHeight = '16px';
-                                    /!*                    tArea.style.height = markdown.scrollHeight + "px"; *!/
-                                }*/
             },
             focusTextarea() {
                 this.$refs.textarea.focus();
@@ -316,5 +296,6 @@
 </script>
 
 <style scoped>
+
 
 </style>

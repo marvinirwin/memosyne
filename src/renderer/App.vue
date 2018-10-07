@@ -31,7 +31,7 @@
     }
 
     button:focus {
-        background-color: $secondary-color;
+        background-color: transparent;
     }
 
     .source-node:hover {

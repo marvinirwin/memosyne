@@ -410,6 +410,8 @@ export class Node extends gen_Node {
         const successorEdges = this.successorEdges$.getValue();
         const predecessorEdges = this.predecessorEdges$.getValue();
         const nodes = this.net ? this.net.nodes : [];
+        const newSuccessorNodes = [];
+        const newPrecessorNodes = [];
 
 
         for (let i = 0; i < nodes.length; i++) {
@@ -417,22 +419,20 @@ export class Node extends gen_Node {
             for (let j = 0; j < successorEdges.length; j++) {
                 const successorEdge = successorEdges[j];
                 if (successorEdge.n2 === node.id) {
-                    if (!this.successorNodes$.getValue().concat) {
-                        debugger;
-                        console.log();
-                    }
-                    this.successorNodes$.next(this.successorNodes$.getValue().concat(node));
+                    newSuccessorNodes.push(node);
                     successorEdge.nodeEnd = node;
                 }
             }
             for (let j = 0; j < predecessorEdges.length; j++) {
                 const predecessorEdge = predecessorEdges[j];
                 if (predecessorEdge.n1 === node.id) {
-                    this.predecessorNodes$.next(this.predecessorNodes$.getValue().concat(node));
+                    newPrecessorNodes.push(node);
                     predecessorEdge.nodeStart = node;
                 }
             }
         }
+        this.successorNodes$.next(newSuccessorNodes);
+        this.predecessorNodes$.next(newPrecessorNodes);
     }
 
     // Helper functions for getting and setting & classification
@@ -531,7 +531,7 @@ export class SourceNode extends Node {
  */
 export function sleep(n) {
     return new Promise((resolve) => {
-        setTimeout(n, resolve);
+        setTimeout(resolve, n);
     });
 }
 
@@ -551,10 +551,27 @@ export function setFocusedInstance(net, oldInstance, newInstance) {
      * @type {HTMLElement}
      */
     const el = newInstance.$refs.nucleus;
-    $('html,body').animate({scrollTop: $(el).offset().top - ($(window).height() - $(el).outerHeight(true)) / 2}, 200);
+    el.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'center',
+    });
+    // $('html,body').animate({scrollTop: $(el).offset().top - ($(window).height() - $(el).outerHeight(true)) / 2}, 200);
+    /*    const boundingRect = el.getBoundingClientRect();
+        const xCenter = boundingRect.left + (boundingRect.width / 2);
+        const yCenter = boundingRect.top + (boundingRect.height / 2);
+        debugger;
+        window.scroll({
+            left: xCenter,
+            top: yCenter,
+            behavior: "smooth",
+        });*/
 
-    event.stopPropagation();
-    event.preventDefault();
+    if (event) {
+        event.stopPropagation();
+
+        event.preventDefault();
+    }
 
     newInstance.showTextArea();
     newInstance.$refs.textarea.focus();
@@ -856,9 +873,18 @@ export class Net {
         }
         this.addNodesAndEdges([newNode], newEdges);
         // Create the new node, push it into the net, wait for the DOM to update the vue instances and then find the vue instance we're focusing
-        /*        await sleep(1);
-                const newParentInstance = parentNode.vueInstances[parentVueInstanceIndex];
-                const childInstance = newParentInstance.$children.find(instance => instance.node.id === newNode);*/
+        await sleep(100);
+        let newInstance;
+        const keys = this.nodeElementMap.keys();
+        for (let i of keys) {
+            if (i.node.id === newNode.id) {
+                newInstance = i;
+                break;
+            }
+        }
+        if (newInstance) {
+            setFocusedInstance(this, parentInstance, newInstance);
+        }
         // setFocusedInstance(childInstance);
         // Maybe I should reset the focuses and add the new, focused instance to preEditSelected$
     }

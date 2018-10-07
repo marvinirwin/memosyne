@@ -110,13 +110,13 @@
                     switch (v) {
                         case SOURCE_LIST:
                             this.net.clear();
-                            await this.userExperience.checkLoginGetSourceNodes();
                             this.applyVerticalRules();
+                            await this.userExperience.checkLoginGetSourceNodes();
                             break;
                         case HORIZONTAL_TREE:
                             this.net.clear();
-                            await this.userExperience.checkLoginGetNodes();
                             this.applyHorizontalRules();
+                            await this.userExperience.checkLoginGetNodes();
                             break;
                         case VERTICAL_TREE:
                             this.net.clear();

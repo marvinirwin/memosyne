@@ -30,9 +30,9 @@
                 <i class="material-icons right">Log out</i>
             </button>
             <button class="waves-effect"  @click="debug = !debug">
-                <i class="material-icons right">Log out</i>
+                <i class="material-icons right">Debug</i>
             </button>
-            <button  class="waves-effect" @click="userExperience.nodeLayout$.next(VERTICAL_TREE)">
+<!--            <button  class="waves-effect" @click="userExperience.nodeLayout$.next(VERTICAL_TREE)">
                 <i class="material-icons right">VERTICAL_TREE</i>
             </button>
             <button  class="waves-effect" @click="userExperience.nodeLayout$.next(HORIZONTAL_TREE)">
@@ -41,7 +41,7 @@
             </button>
             <button  class="waves-effect" @click="userExperience.nodeLayout$.next(SOURCE_LIST)">
                 <i class="material-icons right">SOURCE_LIST</i>
-            </button>
+            </button>-->
         </div>
         <ul class="collection" style="flex: 1; color: black; margin: 5px; overflow: auto;">
             <li class="collection-item"

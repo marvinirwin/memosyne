@@ -22,11 +22,11 @@
                 <span>{{formattedTimestamp}}</span>
                 <button class="cbutton cbutton--effect-simo" :class="{'cbutton--click': !latestRevision.visible}"
                         @click="net.addNodeHideToQue([node])">
-                    <i class="material-icons">cancel</i>
+                    <i class="material-icons" style="color: black" >cancel</i>
                 </button>
                 <button class="cbutton cbutton--effect-simo" :class="{'cbutton--click': creatingChild}"
                         @click="handleCreateChildClick()">
-                    <i class="material-icons">note_add</i>
+                    <i class="material-icons" style="color: black" >note_add</i>
                 </button>
                 <i class="material-icons" v-if="groupSelected$">center_focus_weak</i>
                 <i class="material-icons" v-if="preEditSelected$">more_horiz</i>

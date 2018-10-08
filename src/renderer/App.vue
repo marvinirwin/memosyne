@@ -89,7 +89,9 @@
         flex-flow: column nowrap;
         align-self: center;
         /* Let's see if hardcoding the width like this is beneficial */
-        width: 500px;
+        min-width: 300px;
+        width: auto;
+
     }
 
     .nucleus.persisted {

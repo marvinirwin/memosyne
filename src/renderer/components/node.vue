@@ -19,7 +19,7 @@
              style="position: relative;"
         >
             <div>
-                <span>{{formattedTimestamp}}</span>
+<!--                <span>{{formattedTimestamp}}</span>-->
                 <button class="cbutton cbutton--effect-simo" :class="{'cbutton--click': !latestRevision.visible}"
                         @click="net.addNodeHideToQue([node])">
                     <i class="material-icons" style="color: black" >cancel</i>

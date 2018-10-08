@@ -6,6 +6,7 @@
         <div
                 v-for="(node, index) in sub_nodes$"
                 :key="node.id">
+            <div>Tree last modified: {{node.lastModified}}</div>
             <node
                     v-if="node.visible"
                     :node="node"

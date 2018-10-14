@@ -198,7 +198,7 @@ export function sanitizeLoadedNode(n) {
     });
 }
 
-export class gen_Edge {
+class gen_Edge {
     constructor({id, createdTimestamp, userId}) {
         this.id = !isNaN(parseInt(id + '', 10)) ? parseInt(id + '', 10) : undefined;
         this.createdTimestamp = createdTimestamp ? new Date(createdTimestamp) : undefined;
@@ -206,7 +206,7 @@ export class gen_Edge {
     }
 }
 
-export class gen_EdgeRevision {
+class gen_EdgeRevision {
     constructor({id, createdTimestamp, text, classification, edgeId, n1, n2, visible}) {
         this.id = !isNaN(parseInt(id + '', 10)) ? parseInt(id + '', 10) : undefined;
         this.createdTimestamp = createdTimestamp ? new Date(createdTimestamp) : undefined;
@@ -219,7 +219,18 @@ export class gen_EdgeRevision {
     }
 }
 
-export class gen_Node {
+class gen_NestedSetsGraph {
+    constructor({sourceId, nodeId, lft, rgt, lastModified, id}) {
+        this.sourceId = !isNaN(parseInt(sourceId + '', 10)) ? parseInt(sourceId + '', 10) : undefined;
+        this.nodeId = !isNaN(parseInt(nodeId + '', 10)) ? parseInt(nodeId + '', 10) : undefined;
+        this.lft = !isNaN(parseInt(lft + '', 10)) ? parseInt(lft + '', 10) : undefined;
+        this.rgt = !isNaN(parseInt(rgt + '', 10)) ? parseInt(rgt + '', 10) : undefined;
+        this.lastModified = lastModified ? new Date(lastModified) : undefined;
+        this.id = !isNaN(parseInt(id + '', 10)) ? parseInt(id + '', 10) : undefined;
+    }
+}
+
+class gen_Node {
     constructor({id, createdTimestamp, userId}) {
         this.id = !isNaN(parseInt(id + '', 10)) ? parseInt(id + '', 10) : undefined;
         this.createdTimestamp = createdTimestamp ? new Date(createdTimestamp) : undefined;
@@ -227,7 +238,7 @@ export class gen_Node {
     }
 }
 
-export class gen_NodeRevision {
+class gen_NodeRevision {
     constructor({id, createdTimestamp, text, classification, nodeId, visible}) {
         this.id = !isNaN(parseInt(id + '', 10)) ? parseInt(id + '', 10) : undefined;
         this.createdTimestamp = createdTimestamp ? new Date(createdTimestamp) : undefined;
@@ -238,7 +249,68 @@ export class gen_NodeRevision {
     }
 }
 
-export class Node extends gen_Node {
+class gen_VEdge {
+    constructor({id, visible, classification, createdTimestamp, n1, n2, text}) {
+        this.id = !isNaN(parseInt(id + '', 10)) ? parseInt(id + '', 10) : undefined;
+        this.visible = visible;
+        this.classification = classification;
+        this.createdTimestamp = createdTimestamp ? new Date(createdTimestamp) : undefined;
+        this.n1 = !isNaN(parseInt(n1 + '', 10)) ? parseInt(n1 + '', 10) : undefined;
+        this.n2 = !isNaN(parseInt(n2 + '', 10)) ? parseInt(n2 + '', 10) : undefined;
+        this.text = text;
+    }
+}
+
+class gen_VEdgeRevision {
+    constructor({id, createdTimestamp, text, classification, assignedTo, n1, n2, visible}) {
+        this.id = !isNaN(parseInt(id + '', 10)) ? parseInt(id + '', 10) : undefined;
+        this.createdTimestamp = createdTimestamp ? new Date(createdTimestamp) : undefined;
+        this.text = text;
+        this.classification = classification;
+        this.assignedTo = !isNaN(parseInt(assignedTo + '', 10)) ? parseInt(assignedTo + '', 10) : undefined;
+        this.n1 = !isNaN(parseInt(n1 + '', 10)) ? parseInt(n1 + '', 10) : undefined;
+        this.n2 = !isNaN(parseInt(n2 + '', 10)) ? parseInt(n2 + '', 10) : undefined;
+        this.visible = visible;
+    }
+}
+
+class gen_VNestedSetsGraph {
+    constructor({sourceId, nodeId, lft, rgt, id, lastModified, text, userId}) {
+        this.sourceId = !isNaN(parseInt(sourceId + '', 10)) ? parseInt(sourceId + '', 10) : undefined;
+        this.nodeId = !isNaN(parseInt(nodeId + '', 10)) ? parseInt(nodeId + '', 10) : undefined;
+        this.lft = !isNaN(parseInt(lft + '', 10)) ? parseInt(lft + '', 10) : undefined;
+        this.rgt = !isNaN(parseInt(rgt + '', 10)) ? parseInt(rgt + '', 10) : undefined;
+        this.id = !isNaN(parseInt(id + '', 10)) ? parseInt(id + '', 10) : undefined;
+        this.lastModified = lastModified ? new Date(lastModified) : undefined;
+        this.text = text;
+        this.userId = !isNaN(parseInt(userId + '', 10)) ? parseInt(userId + '', 10) : undefined;
+    }
+}
+
+class gen_VNode {
+    constructor({id, createdTimestamp, userId, lastModified, visible, text}) {
+        this.id = !isNaN(parseInt(id + '', 10)) ? parseInt(id + '', 10) : undefined;
+        this.createdTimestamp = createdTimestamp ? new Date(createdTimestamp) : undefined;
+        this.userId = !isNaN(parseInt(userId + '', 10)) ? parseInt(userId + '', 10) : undefined;
+        this.lastModified = lastModified ? new Date(lastModified) : undefined;
+        this.visible = visible;
+        // temporarily removing this
+/*        this.text = text;*/
+    }
+}
+
+class gen_VNodeRevision {
+    constructor({id, createdTimestamp, text, classification, assignedTo, visible}) {
+        this.id = !isNaN(parseInt(id + '', 10)) ? parseInt(id + '', 10) : undefined;
+        this.createdTimestamp = createdTimestamp ? new Date(createdTimestamp) : undefined;
+        this.text = text;
+        this.classification = classification;
+        this.assignedTo = !isNaN(parseInt(assignedTo + '', 10)) ? parseInt(assignedTo + '', 10) : undefined;
+        this.visible = visible;
+    }
+}
+
+export class Node extends gen_VNode {
     constructor(o) {
         super(o);
         /**
@@ -468,7 +540,7 @@ export class NodeRevision extends gen_NodeRevision {
     }
 }
 
-export class Edge extends gen_Edge {
+export class Edge extends gen_VEdge {
     constructor(o) {
         super(o);
         /**
@@ -1657,7 +1729,7 @@ export class UserExperience {
          * @type {Subject<String>}
          */
         this.message$ = new BehaviorSubject('');
-        this.nodeLayout$ = new BehaviorSubject(VERTICAL_TREE);
+        this.nodeLayout$ = new BehaviorSubject(SOURCE_LIST);
     }
 
     get accessToken() {
@@ -1838,6 +1910,7 @@ export class UserExperience {
     }
 
     loadSourceNodesIntoNet(result) {
+        debugger;
         if (!result || !result.data) {
             this.net.sourceNodes$.next([]);
             return;

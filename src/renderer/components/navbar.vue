@@ -22,7 +22,7 @@
         </div>
         <div style="display: flex; flex-flow: column nowrap; justify-content: space-between">
 
-            <button class="waves-effect"
+<!--            <button class="waves-effect"
                     @click="userExperience.login(userExperience.email, userExperience.password)">
                 <i class="material-icons right">Login</i>
             </button>
@@ -31,7 +31,7 @@
             </button>
             <button class="waves-effect"  @click="debug = !debug">
                 <i class="material-icons right">Debug</i>
-            </button>
+            </button>-->
 <!--            <button  class="waves-effect" @click="userExperience.nodeLayout$.next(VERTICAL_TREE)">
                 <i class="material-icons right">VERTICAL_TREE</i>
             </button>

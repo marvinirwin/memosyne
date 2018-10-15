@@ -26,7 +26,7 @@ const sourceNodeFilter = {
         {
             relation: 'vNestedSetsGraphs',
             scope: {
-                where: {lft: 1, text: {neq: null}},
+                where: {lft: 1, text: {neq: null}, visible: true},
                 order: ['sourceId DESC'],
                 include: [
                     {
@@ -1910,7 +1910,6 @@ export class UserExperience {
     }
 
     loadSourceNodesIntoNet(result) {
-        debugger;
         if (!result || !result.data) {
             this.net.sourceNodes$.next([]);
             return;
@@ -1919,9 +1918,11 @@ export class UserExperience {
             result.data[0] :
             result.data;
 
-        const graphNodes = user.vNestedSetsGraphs.filter(g => {
+        const graphNodes = user.vNestedSetsGraphs.map(g => {
             return g.vNode;
         });
+
+        debugger;
 
         const nodes = [];
         for (let i = 0; i < graphNodes.length; i++) {
@@ -1942,7 +1943,6 @@ export class UserExperience {
         // There should be a way to clear the net
         // TODO maybe merge the source nodes so we don't over-write already loaded source nodes
         this.net.sourceNodes$.next(nodes);
-
     }
 
     loadNodesAndEdgeResultIntoNet(result) {

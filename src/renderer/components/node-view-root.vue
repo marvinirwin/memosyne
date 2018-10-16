@@ -17,7 +17,7 @@
                 class="card"
         ></navbar>
         <node-container v-if="nodeLayout$ === 'SOURCE_LIST'"
-                        :nodes$="net.sourceNodes$">
+                        :nodes$="net.nodes$">
         </node-container>
         <node-container v-else
                         style="overflow: auto; max-height: 80vh;"

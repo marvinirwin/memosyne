@@ -6,7 +6,9 @@
         <div
                 v-for="(node, index) in sub_nodes$"
                 :key="node.id">
-            <div>Tree last modified: {{node.lastModified}}</div>
+            <div style="display: flex; justify-content: center;">
+                <span>Modified: {{node.lastModified | fmtDate}}</span>
+            </div>
             <node
                     v-if="node.visible"
                     :node="node"
@@ -23,6 +25,7 @@
     import Node from './node.vue';
     import {setFocusedInstance, sleep} from "../net";
     import {BehaviorSubject} from 'rxjs';
+    import * as moment from 'moment';
 
     export const colorList = [
         '#DDDDDD',
@@ -49,7 +52,11 @@
         mounted() {
             // const memosyne = this.$store.state.memosyne;
             // What happens if I remove all the event handlers, does it still happen?
-
+        },
+        filters: {
+            fmtDate(d) {
+                return moment(d).format('LLLL')
+            }
         },
         methods: {
             calcColorIndex(index) {

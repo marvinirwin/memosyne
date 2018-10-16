@@ -24,6 +24,10 @@
                         @click="net.addNodeHideToQue([node])">
                     <i class="material-icons" style="color: black" >cancel</i>
                 </button>
+                <button v-if="!expanded$" class="cbutton cbutton--effect-simo" :class="{'cbutton--click': expanding}"
+                        @click="handleExpandClicked()">
+                    <i class="material-icons" style="color: black" >action_dns</i>
+                </button>
                 <button class="cbutton cbutton--effect-simo" :class="{'cbutton--click': creatingChild}"
                         @click="handleCreateChildClick()">
                     <i class="material-icons" style="color: black" >note_add</i>
@@ -84,8 +88,8 @@
         </div>
         <div class="node-children">
             <node
-                    v-for="(child, index) in successorNodes$"
                     v-if="node.visible"
+                    v-for="(child, index) in successorNodes$"
                     :ref="'child' + index"
                     :key="child.id"
                     :node="child"
@@ -154,10 +158,26 @@
                 markdown: '',
                 markdownScrollHeight: 0,
                 latestRevision: {},
-                creatingChild: false
+                creatingChild: false,
+                expanding: false,
             }
         },
         methods: {
+            handleExpandClicked() {
+                (async () => {
+                    if (this.node.expanded$.getValue()) {
+                        this.node.expanded$.next(false);
+                    } else {
+                        // First check if our children are loaded
+                        // If they aren't loaded them, and then set expanded to true
+                        this.expanding = true;
+                        await this.userExperience.loadDefaultUserNodeDescendantsIntoNet(this.node);
+                        this.expanding = false;
+                        this.node.expanded$.next(true);
+
+                    }
+                })()
+            },
             handleNodeHideClick() {
 
             },
@@ -289,6 +309,7 @@
                         return a.createdTimestamp - b.createdTimestamp
                     })
                 })),
+                expanded$: node.expanded$,
                 latestRevision$: node.latestRevision$
             }
         },

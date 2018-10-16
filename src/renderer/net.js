@@ -3,6 +3,7 @@ import {debounceTime, scan} from 'rxjs/operators'
 import axios from 'axios';
 import * as $ from 'jquery';
 import * as moment from 'moment';
+import {flatten} from 'lodash';
 
 export const LOADING_OBJECT_TIMEOUT = 10000;
 
@@ -140,36 +141,46 @@ function nodesBelowFilter(nodeId) {
                     where: {nodeId},
                     include: [
                         {
-                            relation: 'vNode',
+                            relation: 'vNestedSetsGraphMates',
                             scope: {
-                                where: {visible: true, text: {neq: null}},
-                                order: ['lastModified DESC'],
+                                where: {visible: true},
                                 include: [
                                     {
-                                        relation: 'nodeRevisions',
+                                        relation: 'vNode',
                                         scope: {
-                                            limit: 1,
-                                            order: ['createdTimestamp DESC'],
-                                        },
-                                    },
-                                    {
-                                        relation: 'outgoingVEdges',
-                                        include: [
-                                            {
-                                                relation: 'edgeRevisions',
-                                                scope: {
-                                                    limit: 1,
-                                                    order: ['createdTimestamp DESC'],
+                                            where: {visible: true},
+                                            order: ['lastModified DESC'],
+                                            include: [
+                                                {
+                                                    relation: 'nodeRevisions',
+                                                    scope: {
+                                                        limit: 1,
+                                                        order: ['createdTimestamp DESC'],
+                                                    },
                                                 },
-                                            },
-                                        ],
+                                                {
+                                                    relation: 'outgoingVEdges',
+                                                    scope: {
+                                                        include: [
+                                                            {
+                                                                relation: 'edgeRevisions',
+                                                                scope: {
+                                                                    limit: 1,
+                                                                    order: ['createdTimestamp DESC'],
+                                                                },
+                                                            },
+                                                        ],
+                                                    },
+                                                },
+                                            ],
+                                        },
                                     },
                                 ],
                             },
                         },
                     ],
-                }
-            }
+                },
+            },
         ]
     }
 }
@@ -295,7 +306,7 @@ class gen_VNode {
         this.lastModified = lastModified ? new Date(lastModified) : undefined;
         this.visible = visible;
         // temporarily removing this
-/*        this.text = text;*/
+        /*        this.text = text;*/
     }
 }
 
@@ -396,16 +407,6 @@ export class Node extends gen_VNode {
          */
         this.childCount = 0;
 
-        // If we get any edges check if any of them belong to us and put them into successorEdges
-
-        // If there are any new nodes check if we're related to them
-        // and check our edges to see if we should stick them into our predecessor
-        /*        this.netNodes$.subscribe(() => {
-                    this.assignSuccessorAndPredecessorNodes();
-                });*/
-        /*        this.successorEdges$.pipe(debounceTime(0)).subscribe(() => this.assignSuccessorAndPredecessorNodes());
-                this.predecessorEdges$.pipe(debounceTime(0)).subscribe(() => this.assignSuccessorAndPredecessorNodes());*/
-
         this.nodeRevisions$.pipe(debounceTime(0)).subscribe(r => {
             if (!r || !r.length) return;
             this.latestRevision$.next(r[r.length - 1]);
@@ -443,8 +444,9 @@ export class Node extends gen_VNode {
     checkEdgeRevisions() {
         this.successorEdges$.next([]);
         this.predecessorEdges$.next([]);
-        for (let i = 0; i < this.net.edges.length; i++) {
-            const edge = this.net.edges[i];
+        const edges = this.net.edges$.getValue();
+        for (let i = 0; i < edges.length; i++) {
+            const edge = edges[i];
             if (edge.n1 === this.id) {
                 this.successorEdges$.next(this.successorEdges$.getValue().concat(edge));
             }
@@ -481,7 +483,7 @@ export class Node extends gen_VNode {
     assignSuccessorAndPredecessorNodes() {
         const successorEdges = this.successorEdges$.getValue();
         const predecessorEdges = this.predecessorEdges$.getValue();
-        const nodes = this.net ? this.net.nodes : [];
+        const nodes = this.net ? this.net.nodes$.getValue() : [];
         const newSuccessorNodes = [];
         const newPrecessorNodes = [];
 
@@ -514,6 +516,9 @@ export class Node extends gen_VNode {
     }
 
     set text(v) {
+        if (v === '#Windows#') {
+            debugger;console.log();
+        }
         this.currentText$.next(v);
     }
 
@@ -632,7 +637,6 @@ export function setFocusedInstance(net, oldInstance, newInstance) {
     /*    const boundingRect = el.getBoundingClientRect();
         const xCenter = boundingRect.left + (boundingRect.width / 2);
         const yCenter = boundingRect.top + (boundingRect.height / 2);
-        debugger;
         window.scroll({
             left: xCenter,
             top: yCenter,
@@ -669,14 +673,14 @@ export class Net {
         this.userExperience = undefined;
 
         /**
-         * @type {Node[]}
+         * @type {BehaviorSubject<Node[]>}
          */
-        this.nodes = [];
+        this.nodes$ = new BehaviorSubject([]);
         /**
          *
-         * @type {Edge[]}
+         * @type {BehaviorSubject<Edge[]>}
          */
-        this.edges = [];
+        this.edges$ = new BehaviorSubject([]);
         /**
          * @type {RequestHandler}
          */
@@ -699,15 +703,15 @@ export class Net {
         this.recomputeRelationSignal$ = new Subject();
 
         /**
-         * @type {BehaviorSubject<Node>}
+         * @type {BehaviorSubject<Node[]>}
          */
         this.groupSelectedNodes$ = new BehaviorSubject([]);
         /**
-         * @type {BehaviorSubject<Node>}
+         * @type {BehaviorSubject<Node[]>}
          */
         this.preEditSelectedNodes$ = new BehaviorSubject([]);
         /**
-         * @type {BehaviorSubject<Node>}
+         * @type {BehaviorSubject<Node[]>}
          */
         this.editSelectedNodes$ = new BehaviorSubject([]);
 
@@ -722,7 +726,8 @@ export class Net {
          */
         this.recomputeDisplaySignal$.subscribe(n => {
             this.pushMessage("Recaculating displayRootNodes");
-            this.displayRootNodes$.next(this.nodes.filter(this.rootNodeFilter));
+
+            this.displayRootNodes$.next(this.nodes$.getValue().filter(this.rootNodeFilter));
         });
 
         /**
@@ -808,11 +813,6 @@ export class Net {
         })).subscribe();
 
 
-        /**
-         * @type {BehaviorSubject<SourceNode[]>}
-         */
-        this.sourceNodes$ = new BehaviorSubject([]);
-
         this.addNodesAndEdges(nodes, edges);
     }
 
@@ -822,8 +822,8 @@ export class Net {
      */
     addNodesAndEdges(newNodes, newEdges) {
         this.messages$.next(this.messages$.getValue('Adding nodes and edges'));
-        const oldNodes = this.nodes;
-        const oldEdges = this.edges;
+        const oldNodes = this.nodes$.getValue();
+        const oldEdges = this.edges$.getValue();
         for (let i = 0; i < newNodes.length; i++) {
             const newNode = newNodes[i];
             newNode.setNet(this);
@@ -854,8 +854,8 @@ export class Net {
     }
 
     clear() {
-        this.nodes = [];
-        this.edges = [];
+        this.nodes$.next([]);
+        this.edges$.next([]);
         this.recomputeRelationSignal$.next();
         this.recomputeDisplaySignal$.next();
     }
@@ -1877,7 +1877,7 @@ export class UserExperience {
 
     loadSourceDescendantsIntoNet(result) {
         if (!result || !result.data) {
-            this.net.sourceNodes$.next([]);
+            this.net.nodes$.next([]);
             return;
         }
         const user = result.data.length ?
@@ -1911,7 +1911,7 @@ export class UserExperience {
 
     loadSourceNodesIntoNet(result) {
         if (!result || !result.data) {
-            this.net.sourceNodes$.next([]);
+            this.net.nodes$.next([]);
             return;
         }
         const user = result.data.length ?
@@ -1922,7 +1922,6 @@ export class UserExperience {
             return g.vNode;
         });
 
-        debugger;
 
         const nodes = [];
         for (let i = 0; i < graphNodes.length; i++) {
@@ -1941,15 +1940,14 @@ export class UserExperience {
          * @type {Edge[]}
          */
         // There should be a way to clear the net
-        // TODO maybe merge the source nodes so we don't over-write already loaded source nodes
-        this.net.sourceNodes$.next(nodes);
+        // TODO maybe merge the source nodes so we don't over-write already nodes
+        this.net.nodes$.next(nodes);
     }
 
     loadNodesAndEdgeResultIntoNet(result) {
         if (!result || !result.data) {
             this.net.pushMessage("Bad results, net will be set to empty");
-            this.net.nodes = [];
-            this.net.edges = [];
+            this.net.clear();
             return;
         }
         const user = result.data.length ?
@@ -2002,8 +2000,31 @@ export class UserExperience {
         return nodeResult;
     }
 
-    async loadDefaultUserNodeDescendants(node) {
-
+    /**
+     *
+     * @param node {Node}
+     * @return {Promise<void>}
+     */
+    async loadDefaultUserNodeDescendantsIntoNet(node) {
+        const nodeFilter = nodesBelowFilter(node.id);
+        const nodeResult = await axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: nodeFilter}});
+        const user = nodeResult.data;
+        const vNestedSetsGraph = user.vNestedSetsGraphs;
+        // Ok so I have to take the outgoing vEdges of myself, but the rest I don't need
+        const baseGraph = vNestedSetsGraph[0];
+        const myself = baseGraph.vNestedSetsGraphMates.find(g => g.id === baseGraph.id);
+        const myOutgoingEdges = myself.vNode.outgoingVEdges.map(o => new Edge(o));
+        const vNestedSetsGraphMates = baseGraph.vNestedSetsGraphMates
+            .filter(g => g !== myself);
+        // !!! You have to do this first because the node
+        // constructor will get rid of the outgoingVEdges property
+        let nodes = vNestedSetsGraphMates.map(g => g.vNode);
+        let edges = flatten(nodes.map(n => n.outgoingVEdges)).map(o => new Edge(o));
+        edges = edges.concat(myOutgoingEdges);
+        nodes = nodes.map(o => new Node(o));
+        nodes.map(sanitizeLoadedNode);
+        edges.map(sanitizeLoadedEdge);
+        this.net.addNodesAndEdges(nodes, edges);
     }
 
     /**

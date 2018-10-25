@@ -159,6 +159,20 @@ function nodesBelowFilter(nodeId) {
                                                     },
                                                 },
                                                 {
+                                                    relation: 'incomingVEdges',
+                                                    scope: {
+                                                        include: [
+                                                            {
+                                                                relation: 'edgeRevisions',
+                                                                scope: {
+                                                                    limit: 1,
+                                                                    order: ['createdTimestamp DESC'],
+                                                                },
+                                                            },
+                                                        ],
+                                                    },
+                                                },
+                                                {
                                                     relation: 'outgoingVEdges',
                                                     scope: {
                                                         include: [
@@ -321,6 +335,14 @@ class gen_VNodeRevision {
     }
 }
 
+export const SMALL_NODE = 'SMALL_NODE';
+export const MEDIUM_NODE = 'MEDIUM_NODE';
+export const LARGE_NODE = 'LARGE_NODE';
+
+export const QUESTION_ANSWER = 'QUESTION_ANSWER';
+export const RAMBLE = 'RAMBLE';
+export const TUTORIAL = 'TUTORIAL';
+
 export class Node extends gen_VNode {
     constructor(o) {
         super(o);
@@ -341,6 +363,7 @@ export class Node extends gen_VNode {
          * @type {Vue[]}
          */
         this.vueInstances = [];
+
 
         this.groupSelected$ = new BehaviorSubject(false);
         this.preEditSelected$ = new BehaviorSubject(false);
@@ -407,6 +430,20 @@ export class Node extends gen_VNode {
          */
         this.childCount = 0;
 
+        this.sizeClassification$ = new BehaviorSubject(MEDIUM_NODE);
+        const setSizeClass = (r) => {
+            const len = r.length || 0;
+            if (len < 50) {
+                this.sizeClassification$.next(SMALL_NODE);
+            } else if (len < 250) {
+                this.sizeClassification$.next(MEDIUM_NODE);
+            } else {
+                this.sizeClassification$.next(LARGE_NODE);
+            }
+        };
+        setSizeClass(this.currentText$.getValue());
+        this.currentText$.pipe(debounceTime(3000)).subscribe(setSizeClass);
+
         this.nodeRevisions$.pipe(debounceTime(0)).subscribe(r => {
             if (!r || !r.length) return;
             this.latestRevision$.next(r[r.length - 1]);
@@ -442,18 +479,11 @@ export class Node extends gen_VNode {
     }
 
     checkEdgeRevisions() {
-        this.successorEdges$.next([]);
-        this.predecessorEdges$.next([]);
         const edges = this.net.edges$.getValue();
-        for (let i = 0; i < edges.length; i++) {
-            const edge = edges[i];
-            if (edge.n1 === this.id) {
-                this.successorEdges$.next(this.successorEdges$.getValue().concat(edge));
-            }
-            if (edge.n2 === this.id) {
-                this.predecessorEdges$.next(this.predecessorEdges$.getValue().concat(edge));
-            }
-        }
+        const successorEdges = edges.filter(e => e.n1 === this.id);
+        const predecessorEdges = edges.filter(e => e.n2 === this.id);
+        this.successorEdges$.next(successorEdges);
+        this.predecessorEdges$.next(predecessorEdges);
     }
 
     checkNodeRevisions() {
@@ -484,29 +514,31 @@ export class Node extends gen_VNode {
         const successorEdges = this.successorEdges$.getValue();
         const predecessorEdges = this.predecessorEdges$.getValue();
         const nodes = this.net ? this.net.nodes$.getValue() : [];
-        const newSuccessorNodes = [];
-        const newPrecessorNodes = [];
 
+        // Assign the nodeStart and nodeEnd for each of these, though I forget where these are used
+        successorEdges.forEach(e => {
+            e.nodeStart = nodes.find(n => n.id === e.n1);
+            e.nodeEnd = nodes.find(n => n.id === e.n2);
+        });
 
-        for (let i = 0; i < nodes.length; i++) {
-            const node = nodes[i];
-            for (let j = 0; j < successorEdges.length; j++) {
-                const successorEdge = successorEdges[j];
-                if (successorEdge.n2 === node.id) {
-                    newSuccessorNodes.push(node);
-                    successorEdge.nodeEnd = node;
-                }
-            }
-            for (let j = 0; j < predecessorEdges.length; j++) {
-                const predecessorEdge = predecessorEdges[j];
-                if (predecessorEdge.n1 === node.id) {
-                    newPrecessorNodes.push(node);
-                    predecessorEdge.nodeStart = node;
-                }
-            }
-        }
-        this.successorNodes$.next(newSuccessorNodes);
-        this.predecessorNodes$.next(newPrecessorNodes);
+        // Assign the nodeStart and nodeEnd for each of these, though I forget where these are used
+        predecessorEdges.forEach(e => {
+            e.nodeStart = nodes.find(n => n.id === e.n1);
+            e.nodeEnd = nodes.find(n => n.id === e.n2);
+        });
+
+        // Our successor nodes are those who are on the other end of our successor edges.
+        const successorNodes = nodes.filter(n =>
+            successorEdges.find(e => e.n2 === n.id)
+        );
+
+        // Our predecessor nodes are those who are on the other end of our predecessor edges
+        const predecessorNodes = nodes.filter(n =>
+            predecessorEdges.find(e => e.n1 === n.id)
+        );
+
+        this.successorNodes$.next(successorNodes);
+        this.predecessorNodes$.next(predecessorNodes);
     }
 
     // Helper functions for getting and setting & classification
@@ -516,9 +548,6 @@ export class Node extends gen_VNode {
     }
 
     set text(v) {
-        if (v === '#Windows#') {
-            debugger;console.log();
-        }
         this.currentText$.next(v);
     }
 
@@ -529,6 +558,8 @@ export class Node extends gen_VNode {
     set classification(v) {
         this.currentClassification$.next(v);
     }
+
+
 }
 
 export class NodeRevision extends gen_NodeRevision {
@@ -696,7 +727,8 @@ export class Net {
          * @param n {Node}
          */
         this.rootNodeFilter = (n) => {
-            return n.predecessorEdges$.getValue().length === 0;
+            const predecessorEdges = n.predecessorEdges$.getValue();
+            return predecessorEdges.length === 0;
         };
 
         this.recomputeDisplaySignal$ = new Subject();
@@ -724,10 +756,10 @@ export class Net {
         /**
          * @type {BehaviorSubject<void>}
          */
-        this.recomputeDisplaySignal$.subscribe(n => {
-            this.pushMessage("Recaculating displayRootNodes");
-
-            this.displayRootNodes$.next(this.nodes$.getValue().filter(this.rootNodeFilter));
+        this.recomputeDisplaySignal$.subscribe(() => {
+            const nodes = this.nodes$.getValue();
+            this.pushMessage("Recaculating displayRootNodes with node length: " + nodes.length);
+            this.displayRootNodes$.next(nodes.filter(this.rootNodeFilter));
         });
 
         /**
@@ -756,7 +788,7 @@ export class Net {
              */
             const newFunc = (n) => {
                 n.preEditSelected$.next(true);
-                n.vueInstances.map(v => v.showTextArea());
+                n.vueInstances.map(v => v.showMarkdown());
             };
             previousNodes.map(previousFunc);
             newNodes.map(newFunc);
@@ -812,7 +844,6 @@ export class Net {
             return newNodes;
         })).subscribe();
 
-
         this.addNodesAndEdges(nodes, edges);
     }
 
@@ -844,6 +875,10 @@ export class Net {
             });
             oldEdges.push(newEdge);
         }
+
+        this.nodes$.next(oldNodes);
+        this.edges$.next(oldEdges);
+
         for (let i = 0; i < oldNodes.length; i++) {
             const oldNode = oldNodes[i];
             oldNode.checkEdgeRevisions();
@@ -965,6 +1000,7 @@ export class Net {
      * @param i {any}
      */
     pushMessage(i) {
+        console.log(i);
         this.messages$.next(this.messages$.getValue().concat(i));
     }
 
@@ -1191,8 +1227,6 @@ export class Net {
         }
         return {node: newNode, edges: newEdges};
     }
-
-
 }
 
 export class LoadingObjectList {
@@ -1730,6 +1764,11 @@ export class UserExperience {
          */
         this.message$ = new BehaviorSubject('');
         this.nodeLayout$ = new BehaviorSubject(SOURCE_LIST);
+        this.isAuthenticated$ = new BehaviorSubject(false);
+        this.authenticationInProgress = false;
+        (async () => {
+            this.isAuthenticated$.next(await this.checkAuthenticated());
+        })();
     }
 
     get accessToken() {
@@ -1760,11 +1799,15 @@ export class UserExperience {
         this.message$.next(m);
     }
 
-    async isAuthenticated() {
+    /**
+     * @return {Promise<boolean>}
+     */
+    async checkAuthenticated() {
         if (!this.accessToken) {
             return false;
         }
         let o;
+        this.authenticationInProgress = true;
         try {
             o = this.loadingObjectList.newLoadingObject("Checking if you're logged in");
             await axios.get(resolveApiUrl(api, UrlUsers, this.userId, 'nodes'), {params: {filter: {limit: 0}}});
@@ -1773,6 +1816,7 @@ export class UserExperience {
             o.reject(e);
             return false;
         }
+        this.authenticationInProgress = false;
         return true;
     }
 
@@ -1816,7 +1860,7 @@ export class UserExperience {
 
     async checkLoginGetNodes() {
         this.net.pushMessage("Checking login and getting nodes");
-        const loggedIn = await this.isAuthenticated();
+        const loggedIn = this.isAuthenticated$.getValue();
         if (loggedIn) {
             this.pushMessage("Querying your net...");
             await this.getUserNet();
@@ -1834,7 +1878,7 @@ export class UserExperience {
      */
     async checkLoginGetSourceNodes() {
         this.net.pushMessage("Checking login and getting nodes");
-        const loggedIn = await this.isAuthenticated();
+        const loggedIn = this.isAuthenticated$.getValue();
         if (loggedIn) {
             this.pushMessage("Querying your net...");
             await this.getUserSourceNodes();
@@ -1892,6 +1936,8 @@ export class UserExperience {
         const edges = [];
         for (let i = 0; i < graphNodes.length; i++) {
             const graphNode = graphNodes[i];
+            graphNode.outgoingVEdges = graphNode.outgoingVEdges || [];
+            graphNode.incomingVEdges = graphNode.incomingVEdges || [];
             const node = new Node(graphNode);
             sanitizeLoadedNode(node);
             node.childrenLoaded$.next(true);
@@ -1900,6 +1946,12 @@ export class UserExperience {
             for (let j = 0; j < graphNodes.outgoingVedges.length; j++) {
                 const graphOutoingVedge = graphNodes.outgoingVedges[j];
                 const edge = new Edge(graphOutoingVedge);
+                sanitizeLoadedEdge(edge);
+                edges.push(edge);
+            }
+            for (let j = 0; j < graphNodes.incomingVEdges.length; j++) {
+                const graphOutoingVEdge = graphNodes.incomingVEdges[j];
+                const edge = new Edge(graphOutoingVEdge);
                 sanitizeLoadedEdge(edge);
                 edges.push(edge);
             }
@@ -1941,7 +1993,8 @@ export class UserExperience {
          */
         // There should be a way to clear the net
         // TODO maybe merge the source nodes so we don't over-write already nodes
-        this.net.nodes$.next(nodes);
+        this.net.addNodesAndEdges(nodes, []);
+        /*        this.net.nodes$.next(nodes);*/
     }
 
     loadNodesAndEdgeResultIntoNet(result) {
@@ -2003,28 +2056,41 @@ export class UserExperience {
     /**
      *
      * @param node {Node}
+     * @param url {string}
      * @return {Promise<void>}
      */
-    async loadDefaultUserNodeDescendantsIntoNet(node) {
-        const nodeFilter = nodesBelowFilter(node.id);
-        const nodeResult = await axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: nodeFilter}});
-        const user = nodeResult.data;
-        const vNestedSetsGraph = user.vNestedSetsGraphs;
-        // Ok so I have to take the outgoing vEdges of myself, but the rest I don't need
-        const baseGraph = vNestedSetsGraph[0];
-        const myself = baseGraph.vNestedSetsGraphMates.find(g => g.id === baseGraph.id);
-        const myOutgoingEdges = myself.vNode.outgoingVEdges.map(o => new Edge(o));
-        const vNestedSetsGraphMates = baseGraph.vNestedSetsGraphMates
-            .filter(g => g !== myself);
-        // !!! You have to do this first because the node
-        // constructor will get rid of the outgoingVEdges property
-        let nodes = vNestedSetsGraphMates.map(g => g.vNode);
-        let edges = flatten(nodes.map(n => n.outgoingVEdges)).map(o => new Edge(o));
-        edges = edges.concat(myOutgoingEdges);
-        nodes = nodes.map(o => new Node(o));
-        nodes.map(sanitizeLoadedNode);
-        edges.map(sanitizeLoadedEdge);
-        this.net.addNodesAndEdges(nodes, edges);
+    async loadNodeDescendantsIntoNet(node, url) {
+        const o = this.loadingObjectList.newLoadingObject("Loading node children id: " + node.id);
+        try {
+            const nodeFilter = nodesBelowFilter(node.id);
+            const nodeResult = await axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: nodeFilter}});
+            const user = nodeResult.data;
+            const vNestedSetsGraph = user.vNestedSetsGraphs;
+            // Ok so I have to take the outgoing vEdges of myself, but the rest I don't need
+            const baseGraph = vNestedSetsGraph[0];
+            const myself = baseGraph.vNestedSetsGraphMates.find(g => g.id === baseGraph.id);
+            const myOutgoingEdges = myself.vNode.outgoingVEdges.map(o => new Edge(o));
+            const vNestedSetsGraphMates = baseGraph.vNestedSetsGraphMates
+                .filter(g => g !== myself);
+            // !!! You have to do this first because the node
+            // constructor will get rid of the outgoingVEdges property
+            let nodes = vNestedSetsGraphMates.map(g => g.vNode);
+            let edges = flatten(nodes.map(n => n.outgoingVEdges).concat(nodes.map(n => n.incomingVEdges))).map(o => new Edge(o));
+            edges = edges.concat(myOutgoingEdges);
+            nodes = nodes.map(o => new Node(o));
+            nodes.map(n => {
+                sanitizeLoadedNode(n);
+                n.expanded$.next(true);
+                n.childrenLoaded$.next(true);
+            });
+            edges.map(sanitizeLoadedEdge);
+            nodes.map(n => n.expanded$.next(true));
+            this.net.addNodesAndEdges(nodes, edges);
+            o.resolve("" + nodes.length + " children loaded");
+        }
+        catch (e) {
+            o.reject(e);
+        }
     }
 
     /**

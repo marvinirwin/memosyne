@@ -1,5 +1,6 @@
 <template>
     <div class="navbar" style="display: flex; flex-flow: row nowrap;">
+        <button @click="net.groupSelectedNodes$.next([]); net.createNode(null)">Create Root</button>
         <!--        <div style="font-size: 10px; height: fit-content; position: absolute; background-color: ">
                     {{messages$ | lastMessages}}
                 </div>-->
@@ -19,6 +20,7 @@
                    placeholder="password"
                    style="color: white;"
             >
+            <div class="g-signin2" data-onsuccess="onSignIn"></div>
         </div>
         <div style="display: flex; flex-flow: column nowrap; justify-content: space-between">
 
@@ -67,6 +69,8 @@
         <!--        <div id="div_capacity">Capacity Fraction {{userExperience.capacityFraction}}</div>-->
         <!--            <button id="btn_newnode" @click="btnNewNodeClicked">New Node</button>
                     <button id="btn_deletenode" @click="btnDeleteNodesClicked">Delete Nodes</button>-->
+        <button @click="userExperience.nodeLayout$.next(SOURCE_LIST)">Source List</button>
+        <button @click="userExperience.nodeLayout$.next(VERTICAL_TREE)">All Nodes</button>
     </div>
 </template>
 

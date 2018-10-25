@@ -1,28 +1,29 @@
 <template>
-    <div style="position: relative" @keydown="net.handleHotkeyPress(null, null, $event)" ref="root">
-        <div style="display: flex; flex-flow: column nowrap; position: fixed; background-color: lightgreen; z-index: 1; opacity: 0.5; border-radius: 0px;"
+    <div @keydown="net.handleHotkeyPress(null, null, $event)" ref="root">
+        <div style="display: flex; flex-flow: column nowrap; background-color: lightgreen; z-index: 1; opacity: 0.5; border-radius: 0px;"
              v-if="debug">
             <div v-for="message in lastMessages$" style="margin: 0; padding: 0;">
                 {{message}}
             </div>
         </div>
         <navbar style="
-        height: auto;
         white-space: pre;
         max-height: 20vh;
+        min-height: 20vh;
         overflow: auto;
         width: 100%;
         padding: 0;
-        margin: 0; border-radius: 0px;"
-                class="card"
+        margin: 0;
+        border-radius: 0px;"
         ></navbar>
-        <node-container v-if="nodeLayout$ === 'SOURCE_LIST'"
-                        :nodes$="net.nodes$">
+        <node-container style="
+                max-height: 80vh;
+                min-height: 80vh;
+                overflow: auto; "
+                v-if="nodeLayout$ === 'SOURCE_LIST'"
+
+                        :nodes$="net.displayRootNodes$">
         </node-container>
-        <node-container v-else
-                        style="overflow: auto; max-height: 80vh;"
-                        :nodes$="net.displayRootNodes$"
-        ></node-container>
         <v-snackbar v-model="showUserMessages">
             <div v-for="userMessage in userMessages">
                 {{userMessage}}

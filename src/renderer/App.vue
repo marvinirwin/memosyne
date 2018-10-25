@@ -41,6 +41,25 @@
     $secondary-color-light: #d3b8ae;
     $secondary-color-dark: #725b53;
 
+    .button-row {
+        display: flex;
+        align-items: flex-end;
+    }
+    .button-row > * {
+    }
+
+    .SMALL_NODE {
+        width: 10vw;
+    }
+
+    .MEDIUM_NODE {
+        width: 30vw;
+    }
+
+    .LARGE_NODE {
+        width: 50vw;
+    }
+
     @import '../../node_modules/materialize-css/dist/css/materialize.css';
 
     .material-icons {
@@ -66,11 +85,12 @@
         margin: 5px;
     }
 
-    .btn {
+    .btn, .btn-floating {
+        transition: background-color .25s;
         background-color: $secondary-color-dark;
     }
 
-    .btn:hover {
+    .btn:hover, .btn-floating:hover {
         background-color: $secondary-color;
     }
 

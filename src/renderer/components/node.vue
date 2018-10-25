@@ -16,84 +16,130 @@
              tabindex="99"
              ref="nucleus"
              @click="handleClick($event)"
-             style="position: relative;"
-        >
+             style="display: flex; flex-flow: row nowrap;">
+            <div style="display: flex; flex-flow: column nowrap; justify-content: space-between;">
+                <br><br>
+                <button class="cbutton cbutton--effect-simo"
+                        :class="{'cbutton--click': false}"
+                        @click="node.currentClassification$.next(QUESTION_ANSWER)">
+                    <i class="material-icons" style="color: black">list</i>
+                </button>
+                <button class="cbutton cbutton--effect-simo"
+                        :class="{'cbutton--click': false}"
+                        @click="node.currentClassification$.next(RAMBLE)"
+                >
+                    <i class="material-icons" style="color: black">book</i>
+                </button>
+                <button class="cbutton cbutton--effect-simo"
+                        :class="{'cbutton--click': false}"
+                        @click="node.currentClassification$.next(TUTORIAL)">
+                    <i class="material-icons" style="color: black">subject</i>
+                </button>
+            </div>
             <div>
-<!--                <span>{{formattedTimestamp}}</span>-->
-                <button class="cbutton cbutton--effect-simo" :class="{'cbutton--click': !latestRevision.visible}"
-                        @click="net.addNodeHideToQue([node])">
-                    <i class="material-icons" style="color: black" >cancel</i>
-                </button>
-                <button v-if="!expanded$" class="cbutton cbutton--effect-simo" :class="{'cbutton--click': expanding}"
-                        @click="handleExpandClicked()">
-                    <i class="material-icons" style="color: black" >action_dns</i>
-                </button>
-                <button class="cbutton cbutton--effect-simo" :class="{'cbutton--click': creatingChild}"
-                        @click="handleCreateChildClick()">
-                    <i class="material-icons" style="color: black" >note_add</i>
-                </button>
-                <i class="material-icons" v-if="groupSelected$">center_focus_weak</i>
-                <i class="material-icons" v-if="preEditSelected$">more_horiz</i>
-                <i class="material-icons" v-if="editSelected$">edit</i>
-                <i class="material-icons" v-if="latestRevision.persisted">check</i>
-                <i class="material-icons" v-if="!latestRevision.persisted">clear</i>
+                <div class="button-row">
+                    <!--                <span>{{formattedTimestamp}}</span>-->
+                    <button class="btn-floating cbutton cbutton--effect-simo"
+                            :class="{'cbutton--click': expanding}"
+                            @click="handleExpandClicked()">
+                        <i class="material-icons" style="color: black">expand_more</i>
+                    </button>
+                    <button class="btn-floating cbutton cbutton--effect-simo" :class="{'cbutton--click': creatingChild}"
+                            @click="handleCreateChildClick()">
+                        <i class="material-icons" style="color: black">note_add</i>
+                    </button>
+                    <button class="btn-floating cbutton cbutton--effect-simo"
+                            :class="{'cbutton--click': !latestRevision.visible}"
+                            @click="net.addNodeHideToQue([node])">
+                        <i class="material-icons" style="color: black">cancel</i>
+                    </button>
 
-                <!--                <i class="material-icons" @click="net.expandNode(node)">Expand</i>-->
-            </div>
-            <!--             @click="setSelectedNodes({nodes: [node]})"-->
-            <textarea
-                    ref="textarea"
-                    v-show=""
-                    class="node-textarea"
-                    v-model="node.text"
-                    @keydown.stop="handleTextboxPress($event)"
-            ></textarea>
+                    <i class="material-icons" v-if="groupSelected$" title="Group Selected">center_focus_weak</i>
+                    <i class="material-icons" v-if="preEditSelected$" title="Pre Edit Selected">more_horiz</i>
+                    <i class="material-icons" v-if="editSelected$" title="Edit Selected">edit</i>
+                    <i class="material-icons" v-if="latestRevision.persisted" title="Persisted">check</i>
+                    <!--                <button v-else class="cbutton cbutton&#45;&#45;effect-simo"
+                                            :class="{'cbutton&#45;&#45;click': contracting}"
+                                            @click="handleContractClicked()">
+                                        <i class="material-icons" style="color: black">CONTRACT</i>
+                                    </button>-->
+                    <!--                <i class="material-icons" @click="net.expandNode(node)">Expand</i>-->
+                </div>
+                <!--             @click="setSelectedNodes({nodes: [node]})"-->
+                <textarea
+                        ref="textarea"
+                        class="node-textarea"
+                        :class="sizeClassification$"
+                        v-model="node.text"
+                        @keydown.stop="handleTextboxPress($event)"
+                ></textarea>
 
-            <div
-                    class="node-markdown"
-                    ref="markdown"
-                    v-html="markdown"
-            >
-                <!--                @click="setSelectedNodes({nodes: [node]})"-->
-            </div>
-            <!--                    @click="setSelectedNodes({nodes: [node]})"-->
-            <input
-                    v-if="debug"
-                    class="classification"
-                    placeholder="classification"
-                    v-model="node.classification">
-            <div class="selectable" v-if="debug">
-                <div ref="selectEl">
-                    Select
+                <div
+                        class="node-markdown"
+                        :class="sizeClassification$"
+                        ref="markdown"
+                        v-html="markdown"
+                >
+                    <!--                @click="setSelectedNodes({nodes: [node]})"-->
                 </div>
-            </div>
-            <div class="node-attrs"
-                 ref="attrs"
-                 tabindex="0" v-if="debug">
-                <div>
-                    <span>Predecessor length: {{predecessorNodes$.length}}</span>
-                    <span>Successor length: {{successorNodes$.length}}</span>
+                <!--                    @click="setSelectedNodes({nodes: [node]})"-->
+                <input
+                        v-if="debug"
+                        class="classification"
+                        placeholder="classification"
+                        v-model="node.classification">
+                <div class="selectable" v-if="debug">
+                    <div ref="selectEl">
+                        Select
+                    </div>
                 </div>
-                <div>
-                    <span>Predecessor edges length: {{predecessorEdges$.length}}</span>
-                    <span>Successor edges length: {{successorEdges$.length}}</span>
-                </div>
-                <div>
-                    <div>preEditSelected: {{preEditSelected$}}</div>
-                    <div>editSelected: {{editSelected$}}</div>
-                    <div>groupSelected: {{groupSelected$}}</div>
-                    <div>node id: {{node.id}}</div>
+                <div class="node-attrs"
+                     ref="attrs"
+                     tabindex="0" v-if="debug">
+                    <div>
+                        <span>Predecessor length: {{predecessorNodes$.length}}</span>
+                        <span>Successor length: {{successorNodes$.length}}</span>
+                    </div>
+                    <div>
+                        <span>Predecessor edges length: {{predecessorEdges$.length}}</span>
+                        <span>Successor edges length: {{successorEdges$.length}}</span>
+                    </div>
+                    <div>
+                        <div>preEditSelected: {{preEditSelected$}}</div>
+                        <div>editSelected: {{editSelected$}}</div>
+                        <div>groupSelected: {{groupSelected$}}</div>
+                        <div>node id: {{node.id}}</div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="node-children">
+        <div class="node-children" v-if="expanded$">
+            <!-- Question children are stacked on top of each other -->
+            <div v-if="questionChildren$.length" style="display: flex; flex-flow: column nowrap; border: solid black;">
+                <node
+                        v-if="node.visible"
+                        v-for="(child, index) in questionChildren$"
+                        :ref="'child' + index"
+                        :key="child.id"
+                        :node="child"
+                ></node>
+            </div>
+            <!-- Ramble children have only their titles visible and must be expanded -->
             <node
                     v-if="node.visible"
-                    v-for="(child, index) in successorNodes$"
+                    v-for="(child, index) in rambleChildren$"
                     :ref="'child' + index"
                     :key="child.id"
                     :node="child"
-                    :siblings="successorNodes$.filter(n => n !== child)"
+            ></node>
+
+            <!-- Tutorial children are visible I think children have only their titles visible and must be expanded -->
+            <node
+                    v-if="node.visible"
+                    v-for="(child, index) in tutorialChildren$"
+                    :ref="'child' + index"
+                    :key="child.id"
+                    :node="child"
             ></node>
         </div>
     </div>
@@ -101,9 +147,10 @@
 
 <script>
     import {debounce} from 'lodash';
-    import {mapMutations, mapActions} from 'vuex';
     import {Node, scrollUpElement} from '../net.js';
-    import {map} from 'rxjs/operators';
+    import {filter, map} from 'rxjs/operators';
+    import {QUESTION_ANSWER, RAMBLE, TUTORIAL} from "../net";
+    import {merge, BehaviorSubject} from 'rxjs';
 
     export default {
         name: "node",
@@ -140,10 +187,6 @@
                 type: Node,
                 required: true,
             },
-            siblings: {
-                type: Array,
-                required: true
-            },
             /*            colorList: {
                             type: Array,
                             required: true
@@ -160,21 +203,36 @@
                 latestRevision: {},
                 creatingChild: false,
                 expanding: false,
+                contracting: false,
+                QUESTION_ANSWER,
+                TUTORIAL,
+                RAMBLE,
             }
         },
         methods: {
+            handleContractClicked() {
+                (async () => {
+                    this.contracting = true;
+                    this.node.expanded$.next(false);
+                    this.$nextTick(() => {
+                        this.contracting = false;
+                    });
+                })()
+            },
             handleExpandClicked() {
                 (async () => {
                     if (this.node.expanded$.getValue()) {
                         this.node.expanded$.next(false);
                     } else {
-                        // First check if our children are loaded
-                        // If they aren't loaded them, and then set expanded to true
-                        this.expanding = true;
-                        await this.userExperience.loadDefaultUserNodeDescendantsIntoNet(this.node);
-                        this.expanding = false;
-                        this.node.expanded$.next(true);
-
+                        if (this.node.childrenLoaded$.getValue()) {
+                            this.node.expanded$.next(true);
+                        } else {
+                            this.expanding = true;
+                            await this.userExperience.loadNodeDescendantsIntoNet(this.node);
+                            this.expanding = false;
+                            this.node.childrenLoaded$.next(true);
+                            this.node.expanded$.next(true)
+                        }
                     }
                 })()
             },
@@ -295,6 +353,44 @@
              * @type {Node}
              */
             const node = this.node;
+            // I need to scan my successor nodes.
+            // I need to create subscription objects for all those nodes' classifications
+            // I need to unsubscribe to the old nodes.
+            // So I need to get an array of observables,
+            // smush them all into one subscription which just runs the filters again,
+            // and then when I scan, unsubscribe to them all
+            // TODO what is the operator to bundle up observables?
+
+            // Does subscribe return an observable?
+
+            /**
+             * {Observable}
+             */
+            let oldObservables;
+            const questionChildren$ = new BehaviorSubject([]);
+            const rambleChildren$ = new BehaviorSubject([]);
+            const tutorialChildren$ = new BehaviorSubject([]);
+
+            this.node.successorNodes$.subscribe(nodes => {
+                if (oldObservables) {
+                    oldObservables.unsubscribe();
+                }
+                oldObservables = merge(...nodes.map(node => node.currentClassification$)).subscribe(v => {
+                    const nodes = this.node.successorNodes$.getValue();
+                    questionChildren$.next(
+                        nodes.filter(n => n.currentClassification$.getValue() === QUESTION_ANSWER));
+                    rambleChildren$.next(
+                        nodes.filter(n => n.currentClassification$.getValue() === RAMBLE));
+                    tutorialChildren$.next(
+                        nodes.filter(n => {
+                            const cls = n.currentClassification$.getValue();
+                            return cls === TUTORIAL || cls === '';
+                        })
+                    )
+                })
+            });
+
+
             return {
                 // TOOD add expanded$ as a property of the node Class,
                 // or maybe of just the Vue component
@@ -310,7 +406,9 @@
                     })
                 })),
                 expanded$: node.expanded$,
-                latestRevision$: node.latestRevision$
+                latestRevision$: node.latestRevision$,
+                sizeClassification$: node.sizeClassification$,
+                questionChildren$, rambleChildren$, tutorialChildren$
             }
         },
     }

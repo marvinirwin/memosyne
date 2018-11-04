@@ -87,7 +87,7 @@
                     }
                     .node {
                         display: flex;
-                        flex-flow: column nowrap;
+                        flex-flow: row nowrap;
                         align-items: center;
                         margin-left: 5px;
                         margin-right: 5px;

@@ -11,9 +11,9 @@ const USER_ID = 'USER_ID';
 const USER_EMAIL = 'USER_EMAIL';
 const access_token = 'access_token';
 
-const api = 'api';
-const UrlUsers = 'Users';
-const UrlDefaultUser = 'DefaultUsers';
+export const api = 'api';
+export const UrlUsers = 'Users';
+export const UrlDefaultUser = 'DefaultUsers';
 const UrlNodes = 'Nodes';
 const UrlVNodes = 'VNodes';
 const UrlEdges = 'Edges';
@@ -559,7 +559,31 @@ export class Node extends gen_VNode {
         this.currentClassification$.next(v);
     }
 
+    async expand() {
+        if (this.expanding) {
+            return;
+        }
+        if (this.expanded$.getValue()) {
+            this.expanded$.next(false);
+        } else {
+            if (this.childrenLoaded$.getValue()) {
+                this.expanded$.next(true);
+            } else {
+                let url;
+                if (this.net.userExperience.isAuthenticated$.getValue()) {
+                    url = resolveApiUrl(api, UrlUsers, this.userExperience.userId);
+                } else {
+                    url = resolveApiUrl(api, UrlDefaultUser);
+                }
 
+                this.expanding = true;
+                await this.net.userExperience.loadNodeDescendantsIntoNet(this, url);
+                this.expanding = false;
+                this.childrenLoaded$.next(true);
+                this.expanded$.next(true)
+            }
+        }
+    }
 }
 
 export class NodeRevision extends gen_NodeRevision {
@@ -643,7 +667,7 @@ export function sleep(n) {
     });
 }
 
-function resolveApiUrl(...args) {
+export function resolveApiUrl(...args) {
     return [process.env.API_HOST].concat(args).join('/');
 }
 
@@ -664,15 +688,16 @@ export function setFocusedInstance(net, oldInstance, newInstance) {
         block: 'center',
         inline: 'center',
     });
-    // $('html,body').animate({scrollTop: $(el).offset().top - ($(window).height() - $(el).outerHeight(true)) / 2}, 200);
-    /*    const boundingRect = el.getBoundingClientRect();
-        const xCenter = boundingRect.left + (boundingRect.width / 2);
-        const yCenter = boundingRect.top + (boundingRect.height / 2);
-        window.scroll({
-            left: xCenter,
-            top: yCenter,
-            behavior: "smooth",
-        });*/
+    // TODO figure out how to scroll only the inside container
+    $('#root-container').animate({scrollTop: $(el).offset().top - ($(window).height() - $(el).outerHeight(true)) / 2}, 200);
+    const boundingRect = el.getBoundingClientRect();
+    const xCenter = boundingRect.left + (boundingRect.width / 2);
+    const yCenter = boundingRect.top + (boundingRect.height / 2);
+/*    document.getElementById('root-container').scroll({
+        left: xCenter,
+        top: yCenter,
+        behavior: "smooth",
+    });*/
 
     if (event) {
         event.stopPropagation();
@@ -789,6 +814,8 @@ export class Net {
             const newFunc = (n) => {
                 n.preEditSelected$.next(true);
                 n.vueInstances.map(v => v.showMarkdown());
+                debugger;
+                n.expand();
             };
             previousNodes.map(previousFunc);
             newNodes.map(newFunc);
@@ -817,6 +844,7 @@ export class Net {
                 n.vueInstances.map(v => {
                     v.showTextArea();
                 });
+                n.expand();
             };
             previousNodes.map(previousFunc);
             newNodes.map(newFunc);
@@ -852,6 +880,11 @@ export class Net {
      * @param newEdges {Edge[]}
      */
     addNodesAndEdges(newNodes, newEdges) {
+        // Added this check to find out where duplicate Ids are inserted
+        if (newNodes.find(n => this.nodes$.getValue().find(n2 => n2.id === n.id))) {
+            debugger;
+            throw 'Duplicate Id found';
+        }
         this.messages$.next(this.messages$.getValue('Adding nodes and edges'));
         const oldNodes = this.nodes$.getValue();
         const oldEdges = this.edges$.getValue();
@@ -1055,8 +1088,10 @@ export class Net {
                     case HORIZONTAL_TREE:
                         this.selectParentNode(vueInstance);
                         break;
-                    case VERTICAL_TREE:
+                    case VERTICAL_TREE, SOURCE_LIST:
                         this.selectAboveSibling(siblingInstances, vueInstance, myIndex, newInstance);
+
+
                         break;
                 }
                 break;
@@ -1065,7 +1100,7 @@ export class Net {
                     case HORIZONTAL_TREE:
                         this.selectChild(vueInstance);
                         break;
-                    case VERTICAL_TREE:
+                    case VERTICAL_TREE, SOURCE_LIST:
                         this.selectBelowSibling(siblingInstances, vueInstance, myIndex, newInstance);
                         break;
                 }
@@ -1076,7 +1111,7 @@ export class Net {
                     case HORIZONTAL_TREE:
                         this.selectAboveSibling(siblingInstances, vueInstance, myIndex, newInstance);
                         break;
-                    case VERTICAL_TREE:
+                    case VERTICAL_TREE, SOURCE_LIST:
                         this.selectParentNode(vueInstance);
                         break;
                 }
@@ -1088,7 +1123,7 @@ export class Net {
                     case HORIZONTAL_TREE:
                         this.selectBelowSibling(siblingInstances, vueInstance, myIndex, newInstance);
                         break;
-                    case VERTICAL_TREE:
+                    case VERTICAL_TREE, SOURCE_LIST:
                         this.selectChild(vueInstance);
                         break;
                 }
@@ -1748,13 +1783,72 @@ export class ViewportManager {
 
 }*/
 
+export class User {
+    constructor({displayName, id, token}) {
+        this.displayName = displayName;
+        this.id = id;
+        this.token = token;
+    }
+
+
+    /**
+     *
+     * @param o
+     * @return {User}
+     */
+    static getUserFromResults(o) {
+        // So the data will arrive in the form of {...., UserIdentity: {
+        //    credentials: {accessToken: 'askldjf'},
+        //    profile: {displayName: 'Marvin Irwin'}}
+        // }
+        // }
+
+        // Ok so I have an accessToken in the userIdentity model,
+        // is that my accessToken for google or for loopback?
+        // Also, how do I get the access token,
+        // because I don't have a traditional login method.
+        // Is it stored inside of the url or something?
+
+        // TODO 1. Check if the access token in the userIdentity credentials thing is my thing.
+        // TODO 2. It's not, but that's fine I guess I just need to know where my accessToken is sent to me, let's try the authenticate with google button again
+
+        const userIdentity = o.userIdentity;
+        const profile = o.profile;
+        return new User({displayString: profile.displayName, id: o.id, token: userIdentity.access()})
+    }
+}
+
+export const DefaultUser = new User({displayString: 'Default User', id: 22, token: ''});
+
 export class UserExperience {
+    static getCookie(cname) {
+        const name = cname + "=";
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const ca = decodedCookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+            }
+        }
+        return "";
+    }
+
     /**
      *
      * @param net {Net}
      * @param loadingObjectList {LoadingObjectList}
      */
     constructor(net, loadingObjectList) {
+        // Perform the cookie -> localStorage swap
+        if (UserExperience.getCookie('access_token') &&
+            UserExperience.getCookie('userId')) {
+/*            localStorage.setItem(access_token, UserExperience.getCookie('access_token'));
+            localStorage.setItem(USER_ID, UserExperience.getCookie('userId'))*/
+        }
         this.net = net;
         this.loadingObjectList = loadingObjectList;
         this.capacityFraction = undefined;
@@ -1766,9 +1860,33 @@ export class UserExperience {
         this.nodeLayout$ = new BehaviorSubject(SOURCE_LIST);
         this.isAuthenticated$ = new BehaviorSubject(false);
         this.authenticationInProgress = false;
+
+        /**
+         * @type {BehaviorSubject<User>}
+         */
+        this.user$ = new BehaviorSubject(null);
         (async () => {
             this.isAuthenticated$.next(await this.checkAuthenticated());
         })();
+
+        this.user$.subscribe(async u => {
+            await this.waitAuthentication();
+            await this.checkLoginGetSourceNodes();
+        });
+    }
+
+    waitAuthentication() {
+        let i;
+        return new Promise((resolve, reject) => {
+            i = setInterval(() => {
+                if (!this.authenticationInProgress) {
+                    resolve();
+                    // TODO figure out how to stop setInterval
+                    // TODO maybe add a timeout?
+                    // removeInterval(i);
+                }
+            }, 100)
+        });
     }
 
     get accessToken() {
@@ -1810,7 +1928,8 @@ export class UserExperience {
         this.authenticationInProgress = true;
         try {
             o = this.loadingObjectList.newLoadingObject("Checking if you're logged in");
-            await axios.get(resolveApiUrl(api, UrlUsers, this.userId, 'nodes'), {params: {filter: {limit: 0}}});
+            await
+                axios.get(resolveApiUrl(api, UrlUsers, this.userId, 'nodes'), {params: {filter: {limit: 0}}});
             o.resolve("User is logged in!");
         } catch (e) {
             o.reject(e);
@@ -1823,14 +1942,16 @@ export class UserExperience {
     async getDefaultNet() {
         this.net.clear();
         this.net.pushMessage("Getting default net");
-        const result = await axios.get(resolveApiUrl(api, UrlDefaultUser), {params: {filter: netFilter}});
+        const result = await
+            axios.get(resolveApiUrl(api, UrlDefaultUser), {params: {filter: netFilter}});
         this.loadNodesAndEdgeResultIntoNet(result)
     }
 
     async getUserNet() {
         this.net.clear();
         this.net.pushMessage("Getting user net");
-        const result = await axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: netFilter}});
+        const result = await
+            axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: netFilter}});
         this.loadNodesAndEdgeResultIntoNet(result)
     }
 
@@ -1845,7 +1966,8 @@ export class UserExperience {
      * @return {Promise<void>}
      */
     async getDefaultSourceNodes() {
-        const result = await axios.get(resolveApiUrl(api, UrlDefaultUser), {params: {filter: sourceNodeFilter}});
+        const result = await
+            axios.get(resolveApiUrl(api, UrlDefaultUser), {params: {filter: sourceNodeFilter}});
         this.loadSourceNodesIntoNet(result);
     }
 
@@ -1854,7 +1976,8 @@ export class UserExperience {
      * @return {Promise<void>}
      */
     async getUserSourceNodes() {
-        const result = await axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: sourceNodeFilter}});
+        const result = await
+            axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: sourceNodeFilter}});
         this.loadSourceNodesIntoNet(result);
     }
 
@@ -1863,12 +1986,15 @@ export class UserExperience {
         const loggedIn = this.isAuthenticated$.getValue();
         if (loggedIn) {
             this.pushMessage("Querying your net...");
-            await this.getUserNet();
+            await
+                this.getUserNet();
         } else {
             this.pushMessage("Not logged in, loading default network...");
-            await this.getDefaultNet();
+            await
+                this.getDefaultNet();
         }
-        await sleep(1)
+        await
+            sleep(1)
         // Now try and focus a node's element
     }
 
@@ -1881,19 +2007,21 @@ export class UserExperience {
         const loggedIn = this.isAuthenticated$.getValue();
         if (loggedIn) {
             this.pushMessage("Querying your net...");
-            await this.getUserSourceNodes();
+            await
+                this.getUserSourceNodes();
         } else {
             this.pushMessage("Not logged in, loading default network...");
-            await this.getDefaultSourceNodes();
+            await
+                this.getDefaultSourceNodes();
         }
-        await sleep(1)
     }
 
     async login(email, password) {
         let o;
         try {
             o = this.loadingObjectList.newLoadingObject("Logging in " + email);
-            const result = await axios.post(resolveApiUrl(api, UrlUsers, 'login'), {email, password});
+            const result = await
+                axios.post(resolveApiUrl(api, UrlUsers, 'login'), {email, password});
             this.setLoginResults(result.data.id, result.data.userId, email);
             o.resolve("Successfully logged in");
         } catch (e) {
@@ -1909,14 +2037,18 @@ export class UserExperience {
                 o.reject("Already logged out, no action needed");
                 return
             }
-            await axios.post(resolveApiUrl(api, UrlUsers, 'logout'));
+            await
+                axios.post(resolveApiUrl(api, UrlUsers, 'logout'));
             o.resolve("Logging out successful")
         } catch (e) {
             o.reject(e);
         }
+        this.net.clear();
         this.email = "";
         this.userId = "";
         this.accessToken = "";
+        this.isAuthenticated$.next(false);
+        this.user$.next(null);
     }
 
     loadSourceDescendantsIntoNet(result) {
@@ -2031,31 +2163,6 @@ export class UserExperience {
     /**
      *
      * @param node {Node}
-     * @return {Promise<void>}
-     */
-    async loadUserNodeDescendants(node) {
-        /*        const treeFilter = {
-                    include: [
-                        {
-                            relation: 'vNestedSetsGraphs',
-                            scope: {
-                                where: {
-                                    node_id: node.id
-                                }
-                            }
-                        }
-                    ]
-                };
-                const netResult = await axios.get(resolveApiUrl(UrlUsers, this.userId, {params: {filter: treeFilter}}))
-                const net = netResult.data.user.vNestedSetsGraphs;*/
-        const nodeFilter = nodesBelowFilter(node.id);
-        const nodeResult = await axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: nodeFilter}});
-        return nodeResult;
-    }
-
-    /**
-     *
-     * @param node {Node}
      * @param url {string}
      * @return {Promise<void>}
      */
@@ -2063,8 +2170,14 @@ export class UserExperience {
         const o = this.loadingObjectList.newLoadingObject("Loading node children id: " + node.id);
         try {
             const nodeFilter = nodesBelowFilter(node.id);
-            const nodeResult = await axios.get(resolveApiUrl(api, UrlUsers, this.userId), {params: {filter: nodeFilter}});
-            const user = nodeResult.data;
+            const nodeResult = await
+                axios.get(url, {params: {filter: nodeFilter}});
+            let user;
+            if (Array.isArray(nodeResult.data)) {
+                user = nodeResult.data[0];
+            } else {
+                user = nodeResult.data
+            }
             const vNestedSetsGraph = user.vNestedSetsGraphs;
             // Ok so I have to take the outgoing vEdges of myself, but the rest I don't need
             const baseGraph = vNestedSetsGraph[0];

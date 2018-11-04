@@ -1,7 +1,6 @@
 <template>
 
     <div id="node-container"
-         class="node-children"
          tabindex="255">
         <div
                 v-for="(node, index) in sub_nodes$"

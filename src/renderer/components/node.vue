@@ -3,6 +3,7 @@
          @keydown.stop="hotkey($event)"
          ref="root"
          v-show="latestRevision.visible"
+         :class="sizeClassification$"
     >
         <div class="nucleus card-panel"
              :class="{
@@ -10,7 +11,7 @@
              editSelected: editSelected$,
              preEditSelected: preEditSelected$,
              'z-depth-4': groupSelected$,
-             persisted: latestRevision.persisted,
+             persisted: latestRevision.persisted
              }"
              @mouseleave="scrollUpElement($refs.nucleus)"
              tabindex="99"
@@ -39,16 +40,17 @@
             <div>
                 <div class="button-row">
                     <!--                <span>{{formattedTimestamp}}</span>-->
-                    <button class="btn-floating cbutton cbutton--effect-simo"
+                    <button class="btn-floating"
                             :class="{'cbutton--click': expanding}"
                             @click="handleExpandClicked()">
-                        <i class="material-icons" style="color: black">expand_more</i>
+                        <i class="material-icons" v-if="expanded$" style="color: black">expand_more</i>
+                        <i class="material-icons" v-else style="color: black">expand_more</i>
                     </button>
-                    <button class="btn-floating cbutton cbutton--effect-simo" :class="{'cbutton--click': creatingChild}"
+                    <button class="btn-floating"
                             @click="handleCreateChildClick()">
                         <i class="material-icons" style="color: black">note_add</i>
                     </button>
-                    <button class="btn-floating cbutton cbutton--effect-simo"
+                    <button class="btn-floating"
                             :class="{'cbutton--click': !latestRevision.visible}"
                             @click="net.addNodeHideToQue([node])">
                         <i class="material-icons" style="color: black">cancel</i>
@@ -69,14 +71,12 @@
                 <textarea
                         ref="textarea"
                         class="node-textarea"
-                        :class="sizeClassification$"
                         v-model="node.text"
                         @keydown.stop="handleTextboxPress($event)"
                 ></textarea>
 
                 <div
                         class="node-markdown"
-                        :class="sizeClassification$"
                         ref="markdown"
                         v-html="markdown"
                 >
@@ -113,7 +113,7 @@
                 </div>
             </div>
         </div>
-        <div class="node-children" v-if="expanded$">
+        <div class="" v-if="expanded$">
             <!-- Question children are stacked on top of each other -->
             <div v-if="questionChildren$.length" style="display: flex; flex-flow: column nowrap; border: solid black;">
                 <node
@@ -149,7 +149,18 @@
     import {debounce} from 'lodash';
     import {Node, scrollUpElement} from '../net.js';
     import {filter, map} from 'rxjs/operators';
-    import {QUESTION_ANSWER, RAMBLE, TUTORIAL} from "../net";
+    import {
+        LARGE_NODE,
+        MEDIUM_NODE,
+        QUESTION_ANSWER,
+        RAMBLE,
+        SMALL_NODE,
+        TUTORIAL,
+        resolveApiUrl,
+        api,
+        UrlDefaultUser,
+        UrlUsers
+    } from "../net";
     import {merge, BehaviorSubject} from 'rxjs';
 
     export default {
@@ -220,21 +231,7 @@
                 })()
             },
             handleExpandClicked() {
-                (async () => {
-                    if (this.node.expanded$.getValue()) {
-                        this.node.expanded$.next(false);
-                    } else {
-                        if (this.node.childrenLoaded$.getValue()) {
-                            this.node.expanded$.next(true);
-                        } else {
-                            this.expanding = true;
-                            await this.userExperience.loadNodeDescendantsIntoNet(this.node);
-                            this.expanding = false;
-                            this.node.childrenLoaded$.next(true);
-                            this.node.expanded$.next(true)
-                        }
-                    }
-                })()
+                this.node.expand();
             },
             handleNodeHideClick() {
 
@@ -407,7 +404,16 @@
                 })),
                 expanded$: node.expanded$,
                 latestRevision$: node.latestRevision$,
-                sizeClassification$: node.sizeClassification$,
+                sizeClassification$: node.sizeClassification$.pipe(map(v => {
+                    switch (v) {
+                        case LARGE_NODE:
+                            return 'col s12 m6 l4';
+                        case MEDIUM_NODE:
+                            return 'col s6 m4 l3';
+                        case SMALL_NODE:
+                            return 'col s4 m3 l2';
+                    }
+                })),
                 questionChildren$, rambleChildren$, tutorialChildren$
             }
         },

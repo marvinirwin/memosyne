@@ -46,6 +46,7 @@
         align-items: flex-end;
     }
     .button-row > * {
+        margin: 5px;
     }
 
     .SMALL_NODE {
@@ -87,11 +88,12 @@
 
     .btn, .btn-floating {
         transition: background-color .25s;
-        background-color: $secondary-color-dark;
+        background-color: transparent;
+/*        background-color: $secondary-color-dark;*/
     }
 
-    .btn:hover, .btn-floating:hover {
-        background-color: $secondary-color;
+    .btn:hover, .btn-floating:hover, .btn-floating:focus {
+        background-color: transparent;
     }
 
     #email:focus, #password:focus {
@@ -125,9 +127,6 @@
         display: flex;
         flex-flow: column nowrap;
         align-self: center;
-        /* Let's see if hardcoding the width like this is beneficial */
-        min-width: 300px;
-        width: auto;
 
     }
 
@@ -141,9 +140,11 @@
 
     .node-textarea {
         min-height: 20px;
+        font-size: 120%;
     }
 
     .node-markdown {
+        width: 100%;
         flex: 1;
     }
 

@@ -8,17 +8,19 @@
         </div>
         <navbar style="
         white-space: pre;
-        max-height: 20vh;
-        min-height: 20vh;
+        max-height: 10vh;
+        min-height: 10vh;
         overflow: auto;
         width: 100%;
         padding: 0;
         margin: 0;
         border-radius: 0px;"
         ></navbar>
-        <node-container style="
-                max-height: 80vh;
-                min-height: 80vh;
+        <node-container
+                id="root-container"
+                style="
+                max-height: 90vh;
+                min-height: 90vh;
                 overflow: auto; "
                 v-if="nodeLayout$ === 'SOURCE_LIST'"
 
@@ -112,17 +114,17 @@
                         case SOURCE_LIST:
                             this.net.clear();
                             this.applyVerticalRules();
-                            await this.userExperience.checkLoginGetSourceNodes();
+/*                            await this.userExperience.checkLoginGetSourceNodes();*/
                             break;
                         case HORIZONTAL_TREE:
                             this.net.clear();
                             this.applyHorizontalRules();
-                            await this.userExperience.checkLoginGetNodes();
+/*                            await this.userExperience.checkLoginGetNodes();*/
                             break;
                         case VERTICAL_TREE:
                             this.net.clear();
                             this.applyVerticalRules();
-                            await this.userExperience.checkLoginGetNodes();
+/*                            await this.userExperience.checkLoginGetNodes();*/
                             break;
                     }
                 })();

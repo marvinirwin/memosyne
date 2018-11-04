@@ -16,8 +16,14 @@ const DebugStore = require('debug')('mem:store');
 
 // What is axios.defaults.auth?  How is it different than headers?
 // Can I set a default query string parameter?
-axios.defaults.params = {};
-axios.defaults.params['access_token'] = localStorage.getItem('access_token');
+axios.interceptors.request.use(function (config) {
+    config.params = config.params || {};
+    config.params.access_token = localStorage.getItem('access_token');
+    return config;
+
+});
+/*axios.defaults.params = {};
+axios.defaults.params['access_token'] = localStorage.getItem('access_token');*/
 
 
 const state = {

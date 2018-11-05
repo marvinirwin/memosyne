@@ -72,3 +72,11 @@ thumbs.db
 
 .idea/
 dist/
+/package-lock.json
+/vuebuild/
+vuebuild/
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

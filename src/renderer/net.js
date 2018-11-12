@@ -14,13 +14,13 @@ const access_token = 'access_token';
 export const api = 'api';
 export const UrlUsers = 'Users';
 export const UrlDefaultUser = 'DefaultUsers';
-const UrlNodes = 'Nodes';
-const UrlVNodes = 'VNodes';
-const UrlEdges = 'Edges';
-const UrlNodeRevisions = 'NodeRevisions';
-const UrlEdgeRevisions = 'EdgeRevisions';
-const UrlDefaultSourceNodes = 'DefaultSourceNodes';
-const UrlUserSourceNodes = 'SourceNodes';
+export const UrlNodes = 'Nodes';
+export const UrlVNodes = 'VNodes';
+export const UrlEdges = 'Edges';
+export const UrlNodeRevisions = 'NodeRevisions';
+export const UrlEdgeRevisions = 'EdgeRevisions';
+export const UrlDefaultSourceNodes = 'DefaultSourceNodes';
+export const UrlUserSourceNodes = 'SourceNodes';
 
 const sourceNodeFilter = {
     include: [

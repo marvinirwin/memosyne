@@ -814,7 +814,6 @@ export class Net {
             const newFunc = (n) => {
                 n.preEditSelected$.next(true);
                 n.vueInstances.map(v => v.showMarkdown());
-                debugger;
                 n.expand();
             };
             previousNodes.map(previousFunc);
@@ -882,7 +881,6 @@ export class Net {
     addNodesAndEdges(newNodes, newEdges) {
         // Added this check to find out where duplicate Ids are inserted
         if (newNodes.find(n => this.nodes$.getValue().find(n2 => n2.id === n.id))) {
-            debugger;
             throw 'Duplicate Id found';
         }
         this.messages$.next(this.messages$.getValue('Adding nodes and edges'));
@@ -1846,8 +1844,8 @@ export class UserExperience {
         // Perform the cookie -> localStorage swap
         if (UserExperience.getCookie('access_token') &&
             UserExperience.getCookie('userId')) {
-/*            localStorage.setItem(access_token, UserExperience.getCookie('access_token'));
-            localStorage.setItem(USER_ID, UserExperience.getCookie('userId'))*/
+            localStorage.setItem(access_token, UserExperience.getCookie('access_token'));
+            localStorage.setItem(USER_ID, UserExperience.getCookie('userId'));
         }
         this.net = net;
         this.loadingObjectList = loadingObjectList;
@@ -1928,8 +1926,7 @@ export class UserExperience {
         this.authenticationInProgress = true;
         try {
             o = this.loadingObjectList.newLoadingObject("Checking if you're logged in");
-            await
-                axios.get(resolveApiUrl(api, UrlUsers, this.userId, 'nodes'), {params: {filter: {limit: 0}}});
+            await axios.get(resolveApiUrl(api, UrlUsers, this.userId, 'nodes'), {params: {filter: {limit: 0}}});
             o.resolve("User is logged in!");
         } catch (e) {
             o.reject(e);
